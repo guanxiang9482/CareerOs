@@ -31,7 +31,7 @@ export const FIELDS: FieldKey[] = [
   'Marketing & Communications',
 ]
 
-// FIXED: Cleaned up raw unicode character escapes for presentation text
+
 export const UNIVERSITIES = [
   'Universiti Malaya (UM)',
   'Universiti Teknologi Malaysia (UTM)',
@@ -45,7 +45,6 @@ export const UNIVERSITIES = [
   'Multimedia University (MMU)',
 ]
 
-// FIXED: Cleaned up raw unicode escapes in company naming
 export const COMPANIES = [
   { name: 'CIMB Group', industry: 'Banking & Finance' },
   { name: 'Petronas', industry: 'Energy' },
@@ -55,6 +54,10 @@ export const COMPANIES = [
   { name: 'Shopee Malaysia', industry: 'E-commerce' },
   { name: 'Nestlé Malaysia', industry: 'FMCG' },
   { name: 'Axiata Group', industry: 'Telecommunications' },
+]
+
+export const LOCATIONS = [
+  'Cheras', 'Penang', 'Kepong', 'Bangsar South', 'Petaling Jaya', 'Klang', 'Shah Alam', 'Setia Alam', 'Putrajaya', 'Cyberjaya'
 ]
 
 export const ROLES: Record<FieldKey, string[]> = {
@@ -69,7 +72,6 @@ export const ROLES: Record<FieldKey, string[]> = {
 export const FIRST_NAMES = ['Aisyah', 'Danish', 'Mei Ling', 'Arjun', 'Farah', 'Wei Jian', 'Nur Iman', 'Haziq', 'Sabrina', 'Kavi']
 export const LAST_NAMES = ['Yusof', 'Tan', 'Rahman', 'Lim', 'Kumar', 'Osman', 'Wong', 'Ibrahim', 'Chong', 'Aziz']
 
-// FIXED: Converted numerical enum to clean string literal types to match your Form Select menus
 export type CurrentStatus = 'Student' | 'Recent Graduate' | 'Working Professional' | 'Career Switcher' | 'Returning to Work'
 
 export interface CandidateRecord {
@@ -85,6 +87,7 @@ export interface CandidateRecord {
   status: 'On Track' | 'Needs a Nudge' | 'At Risk'
   targetRole: string
   currentSalary: number
+  livingCity: string
   cityTier: 'Tier 1 (KL/Selangor)' | 'Tier 2 (Penang/JB)' | 'Tier 3 (Other states)'
 }
 
@@ -102,7 +105,6 @@ export const CANDIDATES: CandidateRecord[] = Array.from({ length: 2000 }, (_, i)
     id: `CAND-${1000 + i}`,
     name: `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`,
     field,
-    // FIXED: Hydrated missing state element using correct type literals
     currentStatus: pick(['Student', 'Recent Graduate', 'Working Professional', 'Career Switcher']) as CurrentStatus,
     university,
     age: randInt(20, 29),
@@ -112,6 +114,7 @@ export const CANDIDATES: CandidateRecord[] = Array.from({ length: 2000 }, (_, i)
     status,
     targetRole: pick(ROLES[field]),
     currentSalary: randInt(2400, 6800),
+    livingCity: pick(LOCATIONS),
     cityTier: pick(['Tier 1 (KL/Selangor)', 'Tier 2 (Penang/JB)', 'Tier 3 (Other states)']),
   }
 })
@@ -121,6 +124,7 @@ export interface JobPosting {
   role: string
   field: FieldKey
   company: string
+  location: string
   salaryMin: number
   salaryMax: number
   cityTier: CandidateRecord['cityTier']
@@ -145,6 +149,7 @@ export const JOBS: JobPosting[] = Array.from({ length: 500 }, (_, i) => {
     role,
     field,
     company: pick(COMPANIES).name,
+    location: pick(LOCATIONS),
     salaryMin,
     salaryMax: salaryMin + randInt(800, 3200),
     cityTier: pick(['Tier 1 (KL/Selangor)', 'Tier 2 (Penang/JB)', 'Tier 3 (Other states)']),
@@ -199,7 +204,6 @@ export const FACULTY_BENCHMARKS: FacultyBenchmark[] = FIELDS.map((f) => ({
   medianSalary: MARKET_MIN_SALARY[f] + randInt(-200, 900),
 }))
 
-// FIXED: Fully hydrated Aisyah's core testing persona with matching string configuration
 export const DEMO_CANDIDATE: CandidateRecord = {
   id: 'CAND-0001',
   name: 'Aisyah Yusof',
@@ -213,6 +217,7 @@ export const DEMO_CANDIDATE: CandidateRecord = {
   status: 'On Track',
   targetRole: 'Backend Engineer',
   currentSalary: 3400,
+  livingCity: 'Kepong',
   cityTier: 'Tier 1 (KL/Selangor)',
 }
 

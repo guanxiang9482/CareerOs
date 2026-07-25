@@ -25,6 +25,8 @@ interface AppContextValue {
   
   authedName: string | null
   setAuthedName: (name: string | null) => void
+  applyToJob: (jobId: string) => void
+  hasApplied: (jobId: string) => boolean
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -91,6 +93,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ))
   }
 
+  function applyToJob(jobId: string) {
+  // Locate the target job listing from the dataset pool
+  const job = JOBS.find((j) => j.id === jobId)
+  if (!job) return
+
+  // Prevent duplicate submissions for the same candidate session
+  if (applications.some((app) => app.jobId === jobId && app.candidateId === DEMO_CANDIDATE.id)) return
+
+  // Dynamically calculate qualification gaps based on active user portfolio assets
+  const isBackend = job.role === 'Backend Engineer'
+  const isMissingSystemDesign = isBackend && !userSkills.includes('System Design')
+  const missing = isMissingSystemDesign ? ['System Design'] : []
+
+  const newApplication: ApplicationRecord = {
+    id: `APP-${Date.now()}`,
+    candidateId: DEMO_CANDIDATE.id,
+    candidateName: DEMO_CANDIDATE.name,
+    jobId: job.id,
+    jobRole: job.role,
+    company: job.company,
+    university: DEMO_CANDIDATE.university,
+    field: DEMO_CANDIDATE.field,
+    // Assign Kanban tracking column depending on live capability assets
+    stage: missing.length > 0 ? 'Not Qualified' : 'Queueing',
+    matchScore: missing.length > 0 ? 78 : 94,
+    missingSkills: missing,
+    portfolioScore: DEMO_CANDIDATE.portfolioScore
+  }
+
+  // Prepend new record into active global state so tracker views update instantly
+  setApplications((prev) => [newApplication, ...prev])
+}
+
+function hasApplied(jobId: string): boolean {
+  return applications.some((app) => app.jobId === jobId && app.candidateId === DEMO_CANDIDATE.id)
+}
+
   const value: AppContextValue = {
     applications,
     selectedJobId,
@@ -109,6 +148,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTransportInput,
     authedName,
     setAuthedName,
+    applyToJob,
+    hasApplied,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
@@ -119,3 +160,4 @@ export function useAppContext(): AppContextValue {
   if (!ctx) throw new Error('useAppContext must be used within AppProvider')
   return ctx
 }
+

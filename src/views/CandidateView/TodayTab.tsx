@@ -23,7 +23,7 @@ export function TodayTab({ onNavigate }: TodayTabProps) {
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs text-emerald-800 font-medium font-mono">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
-          Open to work - Kuala Lumpur
+          Open to work - {c.livingCity}
         </span>
       </div>
 
