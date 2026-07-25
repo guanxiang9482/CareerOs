@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { type AppView } from '../App'
 
-interface LoginPageProps {
-  onLoginSuccess: (targetView: AppView, personaName: string) => void
-}
+// interface LoginPageProps {
+//   onLoginSuccess: (targetView: AppView, personaName: string) => void
+// }
 
 export function LoginPage({ onLoginSuccess }: { onLoginSuccess: (targetView: AppView, name: string) => void }) {
   const [email, setEmail] = useState('aisyah.yusof@email.com') // Defaults to the official demo target persona
