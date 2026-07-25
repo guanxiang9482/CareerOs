@@ -40,7 +40,8 @@ const AISYAH_APPLICATION: ApplicationRecord = {
 // A handful of supporting applications so the kanban board and employer feed
 // don't look empty with just one card in play.
 function buildSupportingApplications(): ApplicationRecord[] {
-  const pool = CANDIDATES.slice(0, 24)
+  // Scale from 24 up to 400 to populate the multi-tenant metrics dashboards realistically
+  const pool = CANDIDATES.slice(0, 400)
   const stages: PipelineStage[] = ['Queueing', 'Reviewing Queue', 'Top Tier Pool', 'Not Qualified', 'Hired']
   return pool.map((c, i) => {
     const job = JOBS[i % JOBS.length]
@@ -55,7 +56,7 @@ function buildSupportingApplications(): ApplicationRecord[] {
       field: c.field,
       stage: stages[i % stages.length],
       matchScore: Math.min(97, 50 + c.portfolioScore * 0.5),
-      missingSkills: c.portfolioScore < 60 ? ['Portfolio verification'] : [],
+      missingSkills: c.portfolioScore < 55 ? ['System Design'] : [],
       portfolioScore: c.portfolioScore,
     }
   })
@@ -64,3 +65,4 @@ function buildSupportingApplications(): ApplicationRecord[] {
 export const INITIAL_APPLICATIONS: ApplicationRecord[] = [AISYAH_APPLICATION, ...buildSupportingApplications()]
 
 export const KANBAN_STAGES: PipelineStage[] = ['Top Tier Pool', 'Reviewing Queue', 'Queueing', 'Not Qualified']
+

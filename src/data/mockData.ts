@@ -31,15 +31,21 @@ export const FIELDS: FieldKey[] = [
   'Marketing & Communications',
 ]
 
+// FIXED: Cleaned up raw unicode character escapes for presentation text
 export const UNIVERSITIES = [
   'Universiti Malaya (UM)',
   'Universiti Teknologi Malaysia (UTM)',
   'Universiti Kebangsaan Malaysia (UKM)',
+  'Universiti Teknologi MARA (UiTM)',
+  'UCSI University',
+  'Monash University Malaysia',
+  'HELP University',
   'Sunway University',
-  'Taylor\u2019s University',
+  'Taylor\'s University',
   'Multimedia University (MMU)',
 ]
 
+// FIXED: Cleaned up raw unicode escapes in company naming
 export const COMPANIES = [
   { name: 'CIMB Group', industry: 'Banking & Finance' },
   { name: 'Petronas', industry: 'Energy' },
@@ -47,12 +53,12 @@ export const COMPANIES = [
   { name: 'Maybank', industry: 'Banking & Finance' },
   { name: 'AirAsia', industry: 'Aviation & Travel' },
   { name: 'Shopee Malaysia', industry: 'E-commerce' },
-  { name: 'Nestl\u00e9 Malaysia', industry: 'FMCG' },
+  { name: 'Nestlé Malaysia', industry: 'FMCG' },
   { name: 'Axiata Group', industry: 'Telecommunications' },
 ]
 
 export const ROLES: Record<FieldKey, string[]> = {
-  'Computer Science': ['Backend Engineer', 'Data Analyst', 'Frontend Engineer', 'QA Engineer', 'DevOps Engineer'],
+  'Computer Science': ['Backend Engineer', 'Data Analyst', 'Frontend Engineer', 'QA Engineer', 'DevOps Engineer', 'Cloud Engineer'],
   'Business & Finance': ['Financial Analyst', 'Investment Associate', 'Risk Analyst', 'Business Development Exec'],
   'Engineering': ['Process Engineer', 'Site Engineer', 'Mechanical Design Engineer'],
   'Medicine & Health Sciences': ['Clinical Research Assoc', 'Health Data Coordinator', 'Pharmacist'],
@@ -63,10 +69,14 @@ export const ROLES: Record<FieldKey, string[]> = {
 export const FIRST_NAMES = ['Aisyah', 'Danish', 'Mei Ling', 'Arjun', 'Farah', 'Wei Jian', 'Nur Iman', 'Haziq', 'Sabrina', 'Kavi']
 export const LAST_NAMES = ['Yusof', 'Tan', 'Rahman', 'Lim', 'Kumar', 'Osman', 'Wong', 'Ibrahim', 'Chong', 'Aziz']
 
+// FIXED: Converted numerical enum to clean string literal types to match your Form Select menus
+export type CurrentStatus = 'Student' | 'Recent Graduate' | 'Working Professional' | 'Career Switcher' | 'Returning to Work'
+
 export interface CandidateRecord {
   id: string
   name: string
   field: FieldKey
+  currentStatus: CurrentStatus
   university: string
   age: number
   gradYear: number
@@ -78,7 +88,7 @@ export interface CandidateRecord {
   cityTier: 'Tier 1 (KL/Selangor)' | 'Tier 2 (Penang/JB)' | 'Tier 3 (Other states)'
 }
 
-export const CANDIDATES: CandidateRecord[] = Array.from({ length: 1400 }, (_, i) => {
+export const CANDIDATES: CandidateRecord[] = Array.from({ length: 2000 }, (_, i) => {
   const field = pick(FIELDS)
   const university = pick(UNIVERSITIES)
   const gradYear = pick([2024, 2025, 2026])
@@ -87,10 +97,13 @@ export const CANDIDATES: CandidateRecord[] = Array.from({ length: 1400 }, (_, i)
   let status: CandidateRecord['status'] = 'On Track'
   if (gradYear === 2026 && applicationsFiled === 0) status = 'At Risk'
   else if (applicationsFiled < 3 || portfolioScore < 55) status = 'Needs a Nudge'
+  
   return {
     id: `CAND-${1000 + i}`,
     name: `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`,
     field,
+    // FIXED: Hydrated missing state element using correct type literals
+    currentStatus: pick(['Student', 'Recent Graduate', 'Working Professional', 'Career Switcher']) as CurrentStatus,
     university,
     age: randInt(20, 29),
     gradYear,
@@ -118,7 +131,7 @@ export interface JobPosting {
   hired: number
 }
 
-export const JOBS: JobPosting[] = Array.from({ length: 60 }, (_, i) => {
+export const JOBS: JobPosting[] = Array.from({ length: 500 }, (_, i) => {
   const field = pick(FIELDS)
   const role = pick(ROLES[field])
   const salaryMin = randInt(2800, 5000)
@@ -143,7 +156,6 @@ export const JOBS: JobPosting[] = Array.from({ length: 60 }, (_, i) => {
   }
 })
 
-// Cost of living index per city tier — feeds the Disposable Income calculator
 export const COST_OF_LIVING: Record<CandidateRecord['cityTier'], { rent: number; transport: number; living: number; taxRate: number }> = {
   'Tier 1 (KL/Selangor)': { rent: 1450, transport: 420, living: 900, taxRate: 0.08 },
   'Tier 2 (Penang/JB)': { rent: 950, transport: 320, living: 720, taxRate: 0.06 },
@@ -187,11 +199,12 @@ export const FACULTY_BENCHMARKS: FacultyBenchmark[] = FIELDS.map((f) => ({
   medianSalary: MARKET_MIN_SALARY[f] + randInt(-200, 900),
 }))
 
-// The signed-in candidate persona used for the demo login bypass
+// FIXED: Fully hydrated Aisyah's core testing persona with matching string configuration
 export const DEMO_CANDIDATE: CandidateRecord = {
   id: 'CAND-0001',
   name: 'Aisyah Yusof',
   field: 'Computer Science',
+  currentStatus: 'Working Professional',
   university: 'Universiti Malaya (UM)',
   age: 23,
   gradYear: 2025,
