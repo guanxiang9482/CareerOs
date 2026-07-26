@@ -64,7 +64,8 @@ export const COMPANIES = Array.from({ length: 240 }, (_, i) => {
 })
 
 export const LOCATIONS = [
-  'Cheras', 'Penang', 'Kepong', 'Bangsar South', 'Petaling Jaya', 'Klang', 'Shah Alam', 'Setia Alam', 'Putrajaya', 'Cyberjaya'
+  'Cheras', 'Penang', 'Kepong', 'Bangsar South', 'Petaling Jaya', 'Klang', 'Shah Alam', 'Setia Alam', 'Putrajaya', 'Cyberjaya', 'Kuala Lumpur', 'Johor Bahru',
+  'Seremban', 'Sitiawan', 'Ipoh', 'Kampar', 'Perlis', 'Kedah', 'Melaka', 'Kelantan', 'Subang Jata', 'Puchong', 'Seri Kembangan', 'Sri Petaling', 'Pahang'
 ]
 
 export const ROLES: Record<FieldKey, string[]> = {
