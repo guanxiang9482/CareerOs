@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAppContext } from '../../data/AppContext'
-import { DEMO_CANDIDATE } from '../../data/mockData'
+import { DEMO_CANDIDATE, CANDIDATES } from '../../data/mockData'
 import { DashboardLayout, type SidebarSection } from '../../components/DashboardLayout'
 
 import { TodayTab } from './TodayTab'
@@ -20,13 +20,14 @@ const SECTIONS: SidebarSection[] = [
 ]
 
 export function CandidateView({ onSwitchRole }: { onSwitchRole: () => void }) {
-  // FIXED: Removed the unused 'userSkills' reference
   const { applications, injectDockerProject, authedName } = useAppContext()
   
-  const c = DEMO_CANDIDATE
+  // LIVE LINK: Find the actual logged-in user in the database
+  const c = useMemo(() => {
+    return CANDIDATES.find(cand => cand.name === authedName) || DEMO_CANDIDATE
+  }, [authedName])
   
-  // LIVE LINK LOGIC: Filter applications specifically for this logged in candidate name
-  const candidateApps = applications.filter((a) => a.candidateName === (authedName || c.name))
+  const candidateApps = applications.filter((a) => a.candidateName === c.name)
 
   const [activeTab, setActiveTab] = useState('today')
 
@@ -49,8 +50,8 @@ export function CandidateView({ onSwitchRole }: { onSwitchRole: () => void }) {
 
   return (
     <DashboardLayout
-      roleLabel="Candidate View"
-      personaName={authedName || c.name}
+      roleLabel="Candidate"
+      personaName={c.name}
       personaSub={`${c.university} · Class of ${c.gradYear}`}
       sections={SECTIONS}
       onSwitchRole={onSwitchRole}
@@ -69,7 +70,6 @@ export function CandidateView({ onSwitchRole }: { onSwitchRole: () => void }) {
           </div>
         )}
 
-        {/* Passing the full array of candidate applications here */}
         {activeTab === 'tracker' && (
           <div id="tracker" className="animate-fade-in">
             <ApplicationTracker 

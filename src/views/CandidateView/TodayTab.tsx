@@ -1,27 +1,29 @@
 import { useState, useMemo } from 'react'
 import { useAppContext } from '../../data/AppContext'
-import { DEMO_CANDIDATE, JOBS } from '../../data/mockData'
-import { Card} from '../../components/ui'
+import { DEMO_CANDIDATE, JOBS, CANDIDATES } from '../../data/mockData'
+import { Card } from '../../components/ui'
 
 interface TodayTabProps {
   onNavigate: (id: string) => void
 }
 
 export function TodayTab({ onNavigate }: TodayTabProps) {
-  const { applications, userSkills, addSkill } = useAppContext()
-  const c = DEMO_CANDIDATE
+  const { applications, userSkills, addSkill, authedName } = useAppContext()
+  
+  // LIVE LINK: Use the logged-in candidate
+  const c = useMemo(() => {
+    return CANDIDATES.find(cand => cand.name === authedName) || DEMO_CANDIDATE
+  }, [authedName])
 
-  // Dynamic state for candidate search visibility modes
   const [availabilityStatus, setAvailabilityStatus] = useState<string>('Open to work')
 
-  const aisyahApps = useMemo(() => {
-    return applications.filter(a => a.candidateId === c.id)
-  }, [applications, c.id])
+  const activeApps = useMemo(() => {
+    return applications.filter(a => a.candidateName === c.name)
+  }, [applications, c.name])
 
   const hasSystemDesign = userSkills.includes('System Design')
   const currentScore = hasSystemDesign ? 94 : 78
 
-  // Fix: Slice a distinct job array segment so Today matches never overlap with Discover view selections
   const distinctTodayMatches = useMemo(() => {
     return JOBS.filter(j => j.field === c.field)
       .slice(2, 5) 
@@ -33,14 +35,12 @@ export function TodayTab({ onNavigate }: TodayTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Top Welcome Panel Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[#0B1E33] tracking-tight">Good morning, {c.name.split(' ')[0]}</h2>
           <p className="text-xs text-[#6B5A44] mt-0.5">BSc {c.field} &middot; {c.university} &bull; Class of {c.gradYear} 🦉</p>
         </div>
         
-        {/* Dynamic Multi-Option Status Picker Menu */}
         <div className="relative inline-block shrink-0">
           <select
             value={availabilityStatus}
@@ -55,7 +55,6 @@ export function TodayTab({ onNavigate }: TodayTabProps) {
         </div>
       </div>
 
-      {/* Main Focus Interview Highlight Module */}
       <Card className="p-6 bg-[#0B1E33] text-white border-none relative overflow-hidden rounded-xl">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
           <div className="md:col-span-8 space-y-3">
@@ -76,13 +75,12 @@ export function TodayTab({ onNavigate }: TodayTabProps) {
         </div>
       </Card>
 
-      {/* Numerical Metrics Summary Grid Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { val: '12', label: 'Matches this week', sub: '▲ 4 vs last week' },
-          { val: aisyahApps.length.toString(), label: 'Active applications', sub: 'In status funnel' },
+          { val: activeApps.length.toString(), label: 'Active applications', sub: 'In status funnel' },
           { val: '2', label: 'Interviews booked', sub: 'Next: Thu 2pm' },
-          { val: `Top ${hasSystemDesign ? '8%' : '15%'}`, label: 'Ecosystem Standing', sub: 'Graduating CS cohort' }
+          { val: `Top ${hasSystemDesign ? '8%' : '15%'}`, label: 'Ecosystem Standing', sub: `Graduating ${c.field.split(' ')[0]} cohort` }
         ].map((m, idx) => (
           <Card key={idx} className="p-4 bg-white border border-[#EBE7E0] rounded-xl">
             <p className="font-mono text-2xl font-bold text-[#0B1E33]">{m.val}</p>
@@ -92,10 +90,7 @@ export function TodayTab({ onNavigate }: TodayTabProps) {
         ))}
       </div>
 
-      {/* Core Split Data Layout Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column Feed: Dynamic Distinct Matches */}
         <div className="lg:col-span-7 space-y-4">
           <h4 className="text-xs font-mono uppercase tracking-wider text-[#9A7B56] font-bold">Top Matches For You</h4>
           <div className="space-y-3">
@@ -112,7 +107,6 @@ export function TodayTab({ onNavigate }: TodayTabProps) {
           </div>
         </div>
 
-        {/* Right Column Feed: Reactive Mentor Advice Module */}
         <div className="lg:col-span-5 space-y-4">
           <h4 className="text-xs font-mono uppercase tracking-wider text-[#9A7B56] font-bold">From Haven</h4>
           <div className="bg-[#FAF6EE] border border-[#9A7B56]/30 rounded-xl p-4 space-y-2">
