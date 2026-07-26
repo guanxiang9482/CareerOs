@@ -66,3 +66,136 @@ export const INITIAL_APPLICATIONS: ApplicationRecord[] = [AISYAH_APPLICATION, ..
 
 export const KANBAN_STAGES: PipelineStage[] = ['Top Tier Pool', 'Reviewing Queue', 'Queueing', 'Not Qualified']
 
+// --- Living Portfolio persistence shapes ------------------------------------
+// Created once at registration, then read/written by PortfolioTab as the
+// candidate adds projects, experience, and certificates during later logins.
+
+export interface PortfolioExperience {
+  role: string
+  company: string
+  period: string
+  bullets: string[]
+}
+
+export interface PortfolioCertificate {
+  id: string
+  name: string
+  issuer: string
+  status: 'Pending' | 'Verified'
+}
+
+export interface PortfolioAcademic {
+  institution: string
+  degree: string
+  period: string
+  bullets: string[]
+}
+
+export interface PortfolioProject {
+  id: string
+  title: string
+  description: string
+}
+
+export interface PortfolioRecord {
+  candidateEmail: string
+  name: string
+  headline: string
+  skills: string[]
+  experiences: PortfolioExperience[]
+  certificates: PortfolioCertificate[]
+  academics: PortfolioAcademic[]
+  projects: PortfolioProject[]
+}
+
+// Single scoring function shared by registration preview and the live
+// Portfolio tab, so the grade never diverges depending on which screen
+// computed it.
+export function calculatePortfolioScore(p: Pick<PortfolioRecord, 'skills' | 'certificates' | 'experiences' | 'projects'>): number {
+  const verifiedCount = p.certificates.filter((c) => c.status === 'Verified').length
+  return Math.min(
+    99,
+    65 + p.skills.length * 3 + verifiedCount * 6 + p.experiences.length * 4 + p.projects.length * 3
+  )
+}
+
+export function createEmptyPortfolio(email: string, name: string, headline: string): PortfolioRecord {
+  return {
+    candidateEmail: email,
+    name,
+    headline,
+    skills: [],
+    experiences: [],
+    certificates: [],
+    academics: [],
+    projects: [],
+  }
+}
+
+// Registration form → the same PortfolioRecord shape PortfolioTab reads/writes.
+export interface RegistrationPortfolioInput {
+  email: string
+  name: string
+  headline: string
+  skills: string[]
+  institution?: string
+  fieldOfStudy?: string
+  gradYear?: string
+  level?: string
+  cgpa?: string
+  jobTitle?: string
+  company?: string
+  duration?: string
+  experienceDesc?: string
+}
+
+export function createPortfolioFromRegistration(input: RegistrationPortfolioInput): PortfolioRecord {
+  const academics: PortfolioAcademic[] = []
+  if (input.institution?.trim() || input.fieldOfStudy?.trim()) {
+    const degreeParts = [input.level?.trim(), input.fieldOfStudy?.trim()].filter(Boolean)
+    academics.push({
+      institution: input.institution?.trim() || 'Institution',
+      degree: degreeParts.length > 0 ? degreeParts.join(' in ') : 'Degree',
+      period: input.gradYear?.trim() || '',
+      bullets: input.cgpa?.trim() ? [`CGPA: ${input.cgpa.trim()}`] : [],
+    })
+  }
+
+  const experiences: PortfolioExperience[] = []
+  if (input.jobTitle?.trim() || input.company?.trim()) {
+    experiences.push({
+      role: input.jobTitle?.trim() || 'Role',
+      company: input.company?.trim() || 'Company',
+      period: input.duration?.trim() || '',
+      bullets: input.experienceDesc?.trim()
+        ? [input.experienceDesc.trim()]
+        : ['Assigned to core software infrastructure sprint loops.'],
+    })
+  }
+
+  return {
+    candidateEmail: input.email.trim().toLowerCase(),
+    name: input.name.trim() || 'Untitled Profile',
+    headline: input.headline.trim(),
+    skills: input.skills,
+    experiences,
+    certificates: [],
+    academics,
+    projects: [],
+  }
+}
+
+// --- Registered users (localStorage-backed auth stand-in) ------------------
+// Not real auth — password stored in plaintext for demo only. Never ship
+// this pattern to production; it exists so login can gate views locally.
+
+export interface RegisteredUser {
+  email: string
+  name: string
+  role: 'candidate' | 'employer' | 'university'
+  password: string
+}
+
+export type RegisterResult = { ok: true } | { ok: false; error: string }
+export type LoginResult = { ok: true; user: RegisteredUser } | { ok: false; error: string }
+

@@ -1,6 +1,10 @@
 import { useState } from 'react'
+import { useAppContext } from '../data/AppContext'
+import { createPortfolioFromRegistration } from '../data/appState'
 
 export function RegistrationView({ onComplete }: { onComplete: () => void }) {
+  const { registerUser } = useAppContext()
+
   // 1. Unified Real-Time Form State Manager
   const [form, setForm] = useState({
     name: 'Aisyah Yusof',
@@ -27,7 +31,9 @@ export function RegistrationView({ onComplete }: { onComplete: () => void }) {
   })
 
   const [selectedSkills, setSelectedSkills] = useState<string[]>(['Python', 'SQL', 'JavaScript', 'Data analysis', 'Communication'])
+  const [password, setPassword] = useState('')
   const availableSkills = ['Python', 'SQL', 'JavaScript', 'Data analysis', 'Excel', 'Communication', 'Project management', 'Design', 'Marketing', 'Leadership']
+  const [submitError, setSubmitError] = useState('')
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills(prev => 
@@ -37,6 +43,52 @@ export function RegistrationView({ onComplete }: { onComplete: () => void }) {
 
   const updateField = (field: string, val: string) => {
     setForm(prev => ({ ...prev, [field]: val }))
+  }
+
+  function handleCreateProfile() {
+    const cleanEmail = form.email.trim().toLowerCase()
+    if (!cleanEmail) {
+      setSubmitError('An email is needed so this profile can be found again on login.')
+      return
+    }
+    if (!password.trim()) {
+      setSubmitError('Choose a password so you can log back in later.')
+      return
+    }
+    setSubmitError('')
+
+    const builtPortfolio = createPortfolioFromRegistration({
+      email: cleanEmail,
+      name: form.name,
+      headline: form.headline,
+      skills: selectedSkills,
+      institution: form.institution,
+      fieldOfStudy: form.fieldOfStudy,
+      gradYear: form.gradYear,
+      level: form.level,
+      cgpa: form.cgpa,
+      jobTitle: form.jobTitle,
+      company: form.company,
+      duration: form.duration,
+      experienceDesc: form.experienceDesc,
+    })
+
+    const result = registerUser(
+      {
+        email: cleanEmail,
+        name: form.name.trim() || 'Untitled Profile',
+        role: 'candidate',
+        password: password.trim(),
+      },
+      builtPortfolio
+    )
+
+    if (!result.ok) {
+      setSubmitError(result.error)
+      return
+    }
+
+    onComplete()
   }
 
   return (
@@ -100,6 +152,10 @@ export function RegistrationView({ onComplete }: { onComplete: () => void }) {
                 <input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} className="w-full rounded-lg border border-[#EBE7E0] bg-[#FDFBF9] px-4 py-2.5 text-sm outline-none focus:border-[#9A7B56]" />
               </div>
               <div>
+                <label className="block text-xs font-mono uppercase text-[#9A7B56] mb-1.5">Password</label>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" className="w-full rounded-lg border border-[#EBE7E0] bg-[#FDFBF9] px-4 py-2.5 text-sm outline-none focus:border-[#9A7B56]" />
+              </div>
+              <div>
                 <label className="block text-xs font-mono uppercase text-[#9A7B56] mb-1.5">Location</label>
                 <input type="text" value={form.location} onChange={(e) => updateField('location', e.target.value)} className="w-full rounded-lg border border-[#EBE7E0] bg-[#FDFBF9] px-4 py-2.5 text-sm outline-none focus:border-[#9A7B56]" />
               </div>
@@ -156,6 +212,10 @@ export function RegistrationView({ onComplete }: { onComplete: () => void }) {
                 </div>
               </div>
               <div>
+                <label className="block text-xs font-mono uppercase text-[#9A7B56] mb-1.5">Duration</label>
+                <input type="text" value={form.duration} onChange={(e) => updateField('duration', e.target.value)} placeholder="Jun 2024 — Aug 2024" className="w-full rounded-lg border border-[#EBE7E0] bg-[#FDFBF9] px-4 py-2.5 text-sm outline-none focus:border-[#9A7B56]" />
+              </div>
+              <div>
                 <label className="block text-xs font-mono uppercase text-[#9A7B56] mb-1.5">What you did</label>
                 <textarea rows={3} value={form.experienceDesc} onChange={(e) => updateField('experienceDesc', e.target.value)} className="w-full rounded-lg border border-[#EBE7E0] bg-[#FDFBF9] px-4 py-2.5 text-sm outline-none focus:border-[#9A7B56] resize-none" />
               </div>
@@ -197,7 +257,12 @@ export function RegistrationView({ onComplete }: { onComplete: () => void }) {
 
           {/* Final Launch Confirmation */}
           <div className="pt-4">
-            <button onClick={onComplete} className="w-full rounded-full bg-[#9A7B56] py-4 text-sm font-mono uppercase tracking-[0.14em] text-white hover:bg-[#836847] shadow-sm transition-all cursor-pointer">
+            {submitError && (
+              <div className="mb-3 rounded-md bg-rose-50 border border-rose-100 p-3 text-xs text-rose-600 font-mono">
+                {submitError}
+              </div>
+            )}
+            <button onClick={handleCreateProfile} className="w-full rounded-full bg-[#9A7B56] py-4 text-sm font-mono uppercase tracking-[0.14em] text-white hover:bg-[#836847] shadow-sm transition-all cursor-pointer">
               Create my profile &middot; Sync Workspace &rarr;
             </button>
           </div>

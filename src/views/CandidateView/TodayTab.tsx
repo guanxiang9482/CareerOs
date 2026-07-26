@@ -62,7 +62,7 @@ export function TodayTab({ onNavigate }: TodayTabProps) {
             <span className="text-[10px] font-mono tracking-[0.2em] text-[#B5A88F] uppercase block">Upcoming &bull; In 2 Days</span>
             <h3 className="text-2xl font-bold tracking-tight">CIMB - Graduate Analyst Interview</h3>
             <p className="text-xs text-[#D8CFC0] leading-relaxed max-w-xl">
-              Thursday, 2:00 PM. Haven lined up 8 likely questions drawn from the role and your Maybank internship — rehearse so you walk in ready.[cite: 26]
+              Thursday, 2:00 PM. Haven lined up 8 likely questions drawn from the role and your Maybank internship — rehearse so you walk in ready.
             </p>
             <div className="pt-2 flex gap-3">
               <button onClick={() => onNavigate('haven')} className="rounded-md bg-[#9A7B56] px-4 py-2 text-xs font-semibold text-white border-none cursor-pointer hover:bg-[#866A48] transition-colors">Rehearse with Haven &rarr;</button>

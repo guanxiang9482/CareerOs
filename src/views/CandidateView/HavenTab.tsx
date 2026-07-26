@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useAppContext } from '../../data/AppContext'
-import { DEMO_CANDIDATE, JOBS, MARKET_MIN_SALARY } from '../../data/mockData'
-import { Card, Badge } from '../../components/ui'
+import { DEMO_CANDIDATE, MARKET_MIN_SALARY } from '../../data/mockData'
+import { Card } from '../../components/ui'
 
 type ChatMessage = { actor: 'haven' | 'user'; content: string }
 
@@ -18,17 +18,17 @@ function executeMentorLogic(
 
   if (/underpaid|salary|pay|worth|raise|increment/.test(text)) {
     if (ctx.isUnderpaid) {
-      return `Looking at your current salary against the market floor for ${DEMO_CANDIDATE.field}, you're sitting about RM ${ctx.gapAmount.toLocaleString()} below the RM ${ctx.marketFloor.toLocaleString()} baseline. That's worth raising at your next review — check the Fair Pay tab for a full negotiation script built off this same number.[cite: 19]`
+      return `Looking at your current salary against the market floor for ${DEMO_CANDIDATE.field}, you're sitting about RM ${ctx.gapAmount.toLocaleString()} below the RM ${ctx.marketFloor.toLocaleString()} baseline. That's worth raising at your next review — check the Fair Pay tab for a full negotiation script built off this same number.`
     }
-    return `You're currently at or above the RM ${ctx.marketFloor.toLocaleString()} market floor for ${DEMO_CANDIDATE.field}, so pay isn't the flag right now — but it's worth rechecking each quarter as the market moves.[cite: 19]`
+    return `You're currently at or above the RM ${ctx.marketFloor.toLocaleString()} market floor for ${DEMO_CANDIDATE.field}, so pay isn't the flag right now — but it's worth rechecking each quarter as the market moves.`
   }
 
   if (/match|score|profile|qualif/.test(text)) {
-    return `Your current alignment score is ${hasSystemDesign ? '94%' : '78%'} for the target engineering pipeline tracks. ${hasSystemDesign ? "That's Top Tier range." : 'Closing the System Design gap in your Living Portfolio tab would move you into the Top Tier pool.'}[cite: 19]`
+    return `Your current alignment score is ${hasSystemDesign ? '94%' : '78%'} for the target engineering pipeline tracks. ${hasSystemDesign ? "That's Top Tier range." : 'Closing the System Design gap in your Living Portfolio tab would move you into the Top Tier pool.'}`
   }
 
   if (/interview|prep|sprint|practice/.test(text)) {
-    return `For upcoming backend infrastructure loops, expect questions on system fallback design and scaling under peak load. ${hasSystemDesign ? 'You already have a verified project to point to for this.' : "You don't have a verified project for this yet — worth building one before that interview."}[cite: 19]`
+    return `For upcoming backend infrastructure loops, expect questions on system fallback design and scaling under peak load. ${hasSystemDesign ? 'You already have a verified project to point to for this.' : "You don't have a verified project for this yet — worth building one before that interview."}`
   }
 
   if (/negotiat/.test(text)) {
@@ -50,7 +50,7 @@ export function HavenTab() {
   }, [])
 
   const [chatLogs, setChatLogs] = useState<ChatMessage[]>([
-    { actor: 'haven', content: 'Morning, Aisyah. You\'ve got the CIMB interview in 5 hours. Want to run through the questions most likely to come up?[cite: 19]' }
+    { actor: 'haven', content: 'Morning, Aisyah. You\'ve got the CIMB interview in 5 hours. Want to run through the questions most likely to come up?' }
   ])
   const [inputValue, setInputValue] = useState('')
   const [computing, setComputing] = useState(false)
@@ -80,10 +80,10 @@ export function HavenTab() {
   }
 
   return (
-    <div className="fixed inset-0 top-[64px] left-[240px] bg-[#FAF8F5] z-10 flex flex-col font-sans text-[#0B1E33]">
+    <div className="fixed inset-0 top-[120px] left-[240px] bg-[#FAF8F5] z-10 flex flex-col font-sans text-[#0B1E33]">
       
       {/* Immersive Top Header Panel featuring High Fidelity AI Profile Avatar */}
-      <div className="bg-white border-b border-[#EBE7E0] px-8 py-4 shrink-0 flex items-center justify-between shadow-3xs">
+      <div className="bg-white border-b border-[#EBE7E0] px-8 py-6 shrink-0 flex items-center justify-between shadow-3xs">
         <div className="flex items-center gap-4">
           
           {/* AI Banner Profile Image Layout Asset Container */}
@@ -97,15 +97,14 @@ export function HavenTab() {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-[#0B1E33]">Haven</h3>
-              <Badge tone="positive">TALENTBANK AI</Badge>
             </div>
-            <p className="text-xs text-neutral-500 mt-0.5">Online &middot; your AI career companion[cite: 19]</p>
+            <p className="text-xs text-neutral-500 mt-0.5">Online &middot; your AI career companion</p>
           </div>
         </div>
         
         <div className="hidden sm:block text-xs font-mono text-[#9A7B56]">
           <Card className="px-3 py-1.5 bg-[#FAF8F5] border border-[#EBE7E0] rounded-lg">
-            ⚡ Pay Gap Check: <span className="font-bold text-amber-700">RM {metrics.gapAmount} below market</span>
+            TALENTBANK AI
           </Card>
         </div>
       </div>

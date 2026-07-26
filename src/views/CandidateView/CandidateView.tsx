@@ -58,7 +58,7 @@ export function CandidateView({ onSwitchRole }: { onSwitchRole: () => void }) {
 
   return (
     <DashboardLayout
-      roleLabel="Candidate View"
+      roleLabel="Candidate"
       personaName={c.name}
       personaSub={`${c.university} · Class of ${c.gradYear}`}
       sections={SECTIONS}

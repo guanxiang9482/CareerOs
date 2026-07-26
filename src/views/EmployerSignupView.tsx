@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useAppContext } from '../data/AppContext'
 
 export function EmployerSignupView({ onComplete }: { onComplete: () => void }) {
+  const { registerUser } = useAppContext()
   const [form, setForm] = useState({
     companyName: 'CIMB Bank',
     workEmail: 'recruitment@cimb.com',
@@ -9,14 +11,41 @@ export function EmployerSignupView({ onComplete }: { onComplete: () => void }) {
     companySize: '201–1,000',
     industry: 'Banking & Finance'
   })
+  const [password, setPassword] = useState('')
+  const [submitError, setSubmitError] = useState('')
+
+  function handleCreateAccount() {
+    const cleanEmail = form.workEmail.trim().toLowerCase()
+    if (!cleanEmail) {
+      setSubmitError('A work email is required.')
+      return
+    }
+    if (!password.trim()) {
+      setSubmitError('Choose a password so you can log back in later.')
+      return
+    }
+    setSubmitError('')
+
+    const result = registerUser({
+      email: cleanEmail,
+      name: form.fullName.trim() || form.companyName.trim() || 'Employer Account',
+      role: 'employer',
+      password: password.trim(),
+    })
+
+    if (!result.ok) {
+      setSubmitError(result.error)
+      return
+    }
+
+    onComplete()
+  }
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-68px)] max-w-[1200px] items-center justify-center px-4 py-12 bg-[#FDFBF9]">
       
-      {/* Split Master Frame Wrapper */}
       <div className="grid w-full grid-cols-1 overflow-hidden rounded-2xl border border-[#EBE7E0] bg-white shadow-lg md:grid-cols-12 max-w-[1050px]">
         
-        {/* LEFT COLUMN: Midnight Navy Value Display */}
         <div className="bg-[#0B1E33] p-10 text-white md:col-span-5 flex flex-col justify-between">
           <div className="space-y-6">
             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#B5A88F] block">
@@ -30,7 +59,6 @@ export function EmployerSignupView({ onComplete }: { onComplete: () => void }) {
               Career OS gives you candidates with verified portfolios and real signal — not just CVs. Post a role and see matched, ranked talent the moment you publish.
             </p>
 
-            {/* Checklist items */}
             <div className="space-y-4 pt-4 text-xs">
               {[
                 { bold: 'Proven portfolios, not promises.', normal: 'Every candidate ships verified work and live projects.' },
@@ -49,7 +77,6 @@ export function EmployerSignupView({ onComplete }: { onComplete: () => void }) {
             </div>
           </div>
 
-          {/* Telemetry Metrics & Testimonial */}
           <div className="mt-10 border-t border-white/10 pt-6">
             <div className="grid grid-cols-3 gap-2 border-b border-white/10 pb-6 mb-6">
               <div>
@@ -77,7 +104,6 @@ export function EmployerSignupView({ onComplete }: { onComplete: () => void }) {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Signup Input Actions Form */}
         <div className="p-10 bg-white md:col-span-7 flex flex-col justify-center">
           <div className="max-w-md w-full mx-auto space-y-6">
             <div>
@@ -108,6 +134,11 @@ export function EmployerSignupView({ onComplete }: { onComplete: () => void }) {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-[10px] font-mono uppercase tracking-wider text-[#9A7B56] mb-1.5">Password</label>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 4 characters" className="w-full rounded-lg border border-[#EBE7E0] bg-[#FAF8F5] px-4 py-2.5 text-sm outline-none focus:border-[#0B1E33]" />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-mono uppercase tracking-wider text-[#9A7B56] mb-1.5">Company Size</label>
@@ -129,7 +160,13 @@ export function EmployerSignupView({ onComplete }: { onComplete: () => void }) {
                 </div>
               </div>
 
-              <button onClick={onComplete} className="w-full rounded-lg bg-[#0B1E33] py-3.5 text-sm font-semibold text-white hover:bg-[#132A47] cursor-pointer shadow-xs mt-2">
+              {submitError && (
+                <div className="rounded-md bg-rose-50 border border-rose-100 p-3 text-xs text-rose-600 font-mono">
+                  {submitError}
+                </div>
+              )}
+
+              <button onClick={handleCreateAccount} className="w-full rounded-lg bg-[#0B1E33] py-3.5 text-sm font-semibold text-white hover:bg-[#132A47] cursor-pointer shadow-xs mt-2">
                 Create employer account &rarr;
               </button>
             </div>
@@ -137,9 +174,6 @@ export function EmployerSignupView({ onComplete }: { onComplete: () => void }) {
             <div className="text-center pt-4 border-t border-[#FAF8F5] space-y-3">
               <p className="text-[10px] text-[#6B5A44]/70">
                 Trusted by <span className="font-semibold text-[#0B1E33]">M · C · H · I</span> &amp; 900+ more partners
-              </p>
-              <p className="text-xs text-[#6B5A44]">
-                Already registered? <span className="text-[#9A7B56] font-semibold underline cursor-pointer">Log in</span>
               </p>
             </div>
           </div>

@@ -8,6 +8,8 @@ import { Haven, type ViewKey } from './components/Haven'
 import { RegistrationView } from './views/RegistrationView'
 import { LoginPage } from './views/LoginPage'
 import { EmployerSignupView } from './views/EmployerSignupView'
+import { StorageDebugPanel } from './components/StorageDebugPanel'
+import type { RegisteredUser } from './data/appState'
 
 export type AppView = 'LANDING' | 'ROLE_SELECTION' | 'CANDIDATE' | 'EMPLOYER' | 'UNIVERSITY' | 'LOG IN' | 'GET STARTED' | 'EMPLOYER_SIGNUP'
 
@@ -19,6 +21,15 @@ const NAV_ITEMS: { view: AppView; label: string }[] = [
   { view: 'LOG IN', label: 'Log In' },
   { view: 'GET STARTED', label: 'Get Started'}
 ]
+
+const PROTECTED_VIEWS: AppView[] = ['CANDIDATE', 'EMPLOYER', 'UNIVERSITY']
+
+function viewToRole(view: AppView): RegisteredUser['role'] | null {
+  if (view === 'CANDIDATE') return 'candidate'
+  if (view === 'EMPLOYER') return 'employer'
+  if (view === 'UNIVERSITY') return 'university'
+  return null
+}
 
 function roleToView(role: RoleKey): AppView {
   if (role === 'candidate') return 'CANDIDATE'
@@ -35,34 +46,31 @@ function havenView(view: AppView): ViewKey | null {
 
 function AppShell() {
   const [view, setView] = useState<AppView>('LANDING')
-  const { setAuthedName } = useAppContext()
+  const { isLoggedIn, currentUserRole, logoutUser } = useAppContext()
+
+  function navigateTo(target: AppView) {
+    const requiredRole = viewToRole(target)
+    if (requiredRole) {
+      if (!isLoggedIn || currentUserRole !== requiredRole) {
+        setView('LOG IN')
+        return
+      }
+    }
+    setView(target)
+  }
 
   function handleSelectRole(role: RoleKey) {
-    const personaNames: Record<RoleKey, string> = {
-      candidate: 'Aisyah Yusof',
-      employer: 'CIMB Group',
-      university: 'Universiti Malaya',
-    }
-    setAuthedName(personaNames[role])
-    setView(roleToView(role))
+    navigateTo(roleToView(role))
   }
 
   function handleSwitchRole() {
-    setAuthedName(null)
+    logoutUser()
     setView('LANDING')
-  }
-
-  function handleAcceleratorNav(target: AppView) {
-    if (target === 'CANDIDATE') setAuthedName('Aisyah Yusof')
-    else if (target === 'EMPLOYER') setAuthedName('CIMB Group')
-    else if (target === 'UNIVERSITY') setAuthedName('Universiti Malaya')
-    else setAuthedName(null)
-    setView(target)
   }
 
   return (
     <div className="min-h-screen bg-[#FDFBF9] font-sans text-[#0B1E33]">
-      <JudgeAcceleratorBanner currentView={view} onNavigate={handleAcceleratorNav} />
+      <JudgeAcceleratorBanner currentView={view} onNavigate={navigateTo} />
 
       {view === 'LANDING' && (
         <LandingSurface 
@@ -70,7 +78,7 @@ function AppShell() {
           onExplore={() => setView('GET STARTED')} 
           onEmployerSignup={() => setView('EMPLOYER_SIGNUP')}
           onSelectRole={handleSelectRole} 
-          onNavigateToHavenChat={() => setView('CANDIDATE')} // Smoothly jumps straight into Aisyah's dashboard context where Haven lives!
+          onNavigateToHavenChat={() => navigateTo('CANDIDATE')}
         />
       )}
 
@@ -80,28 +88,52 @@ function AppShell() {
           onExplore={() => setView('ROLE_SELECTION')} 
           onEmployerSignup={() => setView('EMPLOYER_SIGNUP')}
           onSelectRole={handleSelectRole} 
-          onNavigateToHavenChat={() => setView('CANDIDATE')}
+          onNavigateToHavenChat={() => navigateTo('CANDIDATE')}
         />
       )}
 
-      {view === 'ROLE_SELECTION' && (
-        <LandingSurface stage="ROLE_SELECTION" onExplore={() => setView('ROLE_SELECTION')} onEmployerSignup={() => setView('EMPLOYER_SIGNUP')} onSelectRole={handleSelectRole} />
+      {view === 'CANDIDATE' && isLoggedIn && currentUserRole === 'candidate' && (
+        <CandidateView onSwitchRole={handleSwitchRole} />
+      )}
+      {view === 'EMPLOYER' && isLoggedIn && currentUserRole === 'employer' && (
+        <EmployerView onSwitchRole={handleSwitchRole} />
+      )}
+      {view === 'UNIVERSITY' && isLoggedIn && currentUserRole === 'university' && (
+        <UniversityView onSwitchRole={handleSwitchRole} />
       )}
 
-      {view === 'CANDIDATE' && <CandidateView onSwitchRole={handleSwitchRole} />}
-      {view === 'EMPLOYER' && <EmployerView onSwitchRole={handleSwitchRole} />}
-      {view === 'UNIVERSITY' && <UniversityView onSwitchRole={handleSwitchRole} />}
-
-      {view === 'GET STARTED' && <RegistrationView onComplete={() => handleAcceleratorNav('GET STARTED')}/>}
-
-      {view === 'LOG IN' && (<LoginPage onLoginSuccess={(targetView, personaName) => {
-            setAuthedName(personaName);
-            setView(targetView);
-          }}/>
+      {PROTECTED_VIEWS.includes(view) && (!isLoggedIn || currentUserRole !== viewToRole(view)) && (
+        <div className="mx-auto max-w-lg px-6 py-24 text-center">
+          <h2 className="text-xl font-bold text-[#0B1E33]">Log in to continue</h2>
+          <p className="mt-2 text-sm text-[#6B5A44]">
+            Register an account first, then sign in with your email and password to open this workspace.
+          </p>
+          <button
+            type="button"
+            onClick={() => setView('LOG IN')}
+            className="mt-6 rounded-full bg-[#0B1E33] px-6 py-3 text-sm font-semibold text-white hover:bg-[#132A47]"
+          >
+            Go to Log In
+          </button>
+        </div>
       )}
+
+      {view === 'GET STARTED' && (
+        <RegistrationView onComplete={() => navigateTo('CANDIDATE')} />
+      )}
+
+      {view === 'LOG IN' && (
+        <LoginPage
+          onLoginSuccess={(targetView) => {
+            navigateTo(targetView)
+          }}
+        />
+      )}
+
       {view === 'EMPLOYER_SIGNUP' && (
-        <EmployerSignupView onComplete={() => handleAcceleratorNav('EMPLOYER')} />
+        <EmployerSignupView onComplete={() => navigateTo('EMPLOYER')} />
       )}
+
       <Haven view={havenView(view)} />
     </div>
   )
@@ -118,7 +150,6 @@ function JudgeAcceleratorBanner({
   return (
     <div className="sticky top-0 z-[60] border-b border-[#EBE7E0] bg-[#0B1E33] text-white">
       <div className="mx-auto flex max-w-[1400px] items-center gap-3 overflow-x-auto px-32 py-4"> 
-        
 
         <div className="flex shrink-0 items-center gap-1.5">
           {coreNavItems.map((item) => {
@@ -140,6 +171,8 @@ function JudgeAcceleratorBanner({
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-4 pl-4">
+          <StorageDebugPanel />
+
           <button onClick={() => onNavigate('LOG IN')}
             className={`text-sm font-medium transition-colors cursor-pointer ${
               currentView === 'LOG IN'
@@ -161,7 +194,6 @@ function JudgeAcceleratorBanner({
           </button>
 
         </div>
-
 
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { DEMO_CANDIDATE, JOBS } from '../data/mockData'
 import { Eyebrow } from '../components/ui'
+import { useAppContext } from '../data/AppContext'
 
 export type RoleKey = 'candidate' | 'employer' | 'university'
 
@@ -81,18 +82,42 @@ interface LandingSurfaceProps {
 }
 
 export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stage, onNavigateToHavenChat }: LandingSurfaceProps) {
+  const { isLoggedIn, applyToJob, hasApplied } = useAppContext()
   const [activeRole, setActiveRole] = useState<RoleKey | null>(null)
   const [passcode, setPasscode] = useState('')
   const [error, setError] = useState('')
   
-  const [subView, setSubView] = useState<'HOME' | 'COMPANIES' | 'PROFILE'>('HOME')
+  const [subView, setSubView] = useState<'HOME' | 'COMPANIES' | 'PROFILE' | 'SEARCH'>('HOME')
   const [selectedCompanyName, setSelectedCompanyName] = useState<string>('')
   
   const [searchQuery, setSearchQuery] = useState('')
+  const [heroSearchQuery, setHeroSearchQuery] = useState('')
   const [selectedSector, setSelectedSector] = useState<string>('All sectors')
   const [selectedLocation, setSelectedLocation] = useState<string>('All locations')
   
   const [spotlightIdx, setSpotlightIdx] = useState(0)
+
+  function runHeroSearch() {
+    if (!heroSearchQuery.trim()) {
+      setSubView('COMPANIES')
+      return
+    }
+    setSubView('SEARCH')
+  }
+
+  // Real text-match filtering against role, company, and location, since the
+  // placeholder ("graduate tech jobs above RM 4k") implies searching postings,
+  // not just opening the company directory unfiltered.
+  const heroSearchResults = useMemo(() => {
+    const q = heroSearchQuery.trim().toLowerCase()
+    if (!q) return []
+    return JOBS.filter((j) =>
+      j.role.toLowerCase().includes(q) ||
+      j.company.toLowerCase().includes(q) ||
+      j.location.toLowerCase().includes(q) ||
+      j.field.toLowerCase().includes(q)
+    ).slice(0, 30)
+  }, [heroSearchQuery])
 
   useEffect(() => {
     if (subView !== 'HOME') return
@@ -140,6 +165,55 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
     onSelectRole(activeRole)
   }
 
+  if (subView === 'SEARCH') {
+    return (
+      <div className="mx-auto max-w-[1000px] px-6 py-12 bg-[#FDFBF9]">
+        <button onClick={() => setSubView('HOME')} className="mb-6 inline-flex items-center gap-2 text-xs font-mono tracking-wider text-[#9A7B56] hover:underline cursor-pointer border-none bg-transparent">
+          &larr; Back to interactive homepage interface
+        </button>
+
+        <div className="mb-8">
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#9A7B56]">Search Results</span>
+          <h2 className="text-3xl font-bold text-[#0B1E33] tracking-tight mt-1">"{heroSearchQuery}"</h2>
+          <p className="text-xs text-[#6B5A44] mt-1">{heroSearchResults.length} matching roles found.</p>
+        </div>
+
+        <div className="rounded-xl border border-[#EBE7E0] bg-white p-4 divide-y divide-[#EBE7E0]">
+          {heroSearchResults.map((job) => {
+            const applied = hasApplied(job.id)
+            return (
+              <div key={job.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-bold text-[#0B1E33]">{job.role}</h4>
+                  <p className="text-xs text-[#6B5A44]">{job.company} &middot; {job.location}</p>
+                  <p className="text-[11px] text-[#9A7B56] font-mono mt-0.5">RM {job.salaryMin.toLocaleString()} – {job.salaryMax.toLocaleString()}</p>
+                </div>
+                {isLoggedIn ? (
+                  <button
+                    onClick={() => !applied && applyToJob(job.id)}
+                    disabled={applied}
+                    className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold border-none cursor-pointer transition-colors ${
+                      applied ? 'bg-emerald-50 text-emerald-700 cursor-default' : 'bg-[#0B1E33] text-white hover:bg-[#132A47]'
+                    }`}
+                  >
+                    {applied ? '✓ Applied' : 'Apply'}
+                  </button>
+                ) : (
+                  <span className="shrink-0 text-[11px] font-mono text-[#9A7B56]/70 italic">Log in to apply</span>
+                )}
+              </div>
+            )
+          })}
+          {heroSearchResults.length === 0 && (
+            <div className="py-10 text-center text-xs text-[#6B5A44] italic">
+              No roles matched that search — try a role title, company, or location.
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   if (subView === 'PROFILE') {
     return (
       <div className="mx-auto max-w-[1000px] px-6 py-12 bg-[#FDFBF9]">
@@ -163,21 +237,39 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
 
           <h3 className="text-sm font-mono uppercase tracking-wider text-[#9A7B56] mt-8 mb-4">Open Positions Pipeline</h3>
           <div className="divide-y divide-[#EBE7E0] border-t border-b border-[#EBE7E0]">
-            {companyRoles.map((job, idx) => (
-              <div key={job.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h4 className="text-sm font-bold text-[#0B1E33]">{job.role}</h4>
-                  <p className="text-xs text-[#6B5A44]">Compensation Scale: RM {job.salaryMin.toLocaleString()} – {job.salaryMax.toLocaleString()}</p>
+            {companyRoles.map((job, idx) => {
+              const applied = hasApplied(job.id)
+              return (
+                <div key={job.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-bold text-[#0B1E33]">{job.role}</h4>
+                    <p className="text-xs text-[#6B5A44]">Compensation Scale: RM {job.salaryMin.toLocaleString()} – {job.salaryMax.toLocaleString()}</p>
+                  </div>
+                  <div className="text-right flex flex-col sm:items-end gap-1.5">
+                    <div className="flex flex-col sm:items-end">
+                      <span className="text-xs font-mono font-semibold text-emerald-700">{idx % 2 === 0 ? '2 openings remaining' : '1 opening remaining'}</span>
+                      <span className="text-[10px] font-mono text-[#9A7B56] mt-0.5">Submission Deadline: 14 days left</span>
+                      <span className={`inline-block mt-1 rounded-md px-2 py-0.5 text-[9px] font-mono font-bold uppercase ${idx === 2 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                        {idx === 2 ? 'Freezing' : 'Still Hiring'}
+                      </span>
+                    </div>
+                    {isLoggedIn ? (
+                      <button
+                        onClick={() => !applied && applyToJob(job.id)}
+                        disabled={applied}
+                        className={`rounded-full px-4 py-1.5 text-[11px] font-semibold border-none cursor-pointer transition-colors ${
+                          applied ? 'bg-emerald-50 text-emerald-700 cursor-default' : 'bg-[#0B1E33] text-white hover:bg-[#132A47]'
+                        }`}
+                      >
+                        {applied ? '✓ Applied' : 'Apply now'}
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-mono text-[#9A7B56]/70 italic">Log in to apply</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right flex flex-col sm:items-end">
-                  <span className="text-xs font-mono font-semibold text-emerald-700">{idx % 2 === 0 ? '2 openings remaining' : '1 opening remaining'}</span>
-                  <span className="text-[10px] font-mono text-[#9A7B56] mt-0.5">Submission Deadline: 14 days left</span>
-                  <span className={`inline-block mt-1 rounded-md px-2 py-0.5 text-[9px] font-mono font-bold uppercase ${idx === 2 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
-                    {idx === 2 ? 'Freezing' : 'Still Hiring'}
-                  </span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
             {companyRoles.length === 0 && (
               <div className="py-8 text-center text-xs text-[#6B5A44] italic">
                 All active tracks filled. Access Haven Assistant module to query hidden unlisted career matching streams.
@@ -335,12 +427,13 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
             <span className="pl-4 text-xs font-mono text-[#9A7B56]">✦</span>
             <input
               type="text"
-              readOnly
-              onClick={() => setSubView('COMPANIES')}
-              placeholder='Try "graduate tech jobs above RM 4k"'
-              className="w-full bg-transparent px-3 text-sm text-[#0B1E33] outline-none placeholder-[#0B1E33]/40 cursor-pointer"
+              value={heroSearchQuery}
+              onChange={(e) => setHeroSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') runHeroSearch() }}
+              placeholder='Try "Data Analyst" or "Penang"'
+              className="w-full bg-transparent px-3 text-sm text-[#0B1E33] outline-none placeholder-[#0B1E33]/40"
             />
-            <button onClick={() => setSubView('COMPANIES')} className="rounded-full bg-[#0B1E33] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#132A47] cursor-pointer border-none">
+            <button onClick={runHeroSearch} className="rounded-full bg-[#0B1E33] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#132A47] cursor-pointer border-none">
               Search
             </button>
           </div>
