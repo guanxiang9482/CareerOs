@@ -69,10 +69,17 @@ function loadPortfolioForEmail(email: string): PortfolioRecord | null {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [applications, setApplications] = useState<ApplicationRecord[]>(() =>
-    loadFromStorage(STORAGE_KEYS.applications, INITIAL_APPLICATIONS)
-  )
+  // FORCE OVERRIDE: If the user has fewer than 10 apps saved, force the master seed data
+  const [applications, setApplications] = useState<ApplicationRecord[]>(() => {
+    const saved = loadFromStorage(STORAGE_KEYS.applications, [] as ApplicationRecord[])
+    if (!saved || saved.length < 10) {
+      return INITIAL_APPLICATIONS
+    }
+    return saved
+  })
+
   const [selectedJobId, setSelectedJobId] = useState<string>(FEATURED_JOB.id)
+  
   const [authedName, setAuthedName] = useState<string | null>(() =>
     loadFromStorage(STORAGE_KEYS.authedName, null as string | null)
   )
@@ -91,10 +98,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadFromStorage(STORAGE_KEYS.fairPayInputs, DEFAULT_FAIR_PAY)
   )
 
-  // FIX: Force override if the browser is clinging to the old 1-user cache.
+  // FORCE OVERRIDE: If the user has fewer than 10 users saved, force the master seed data
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>(() => {
     const saved = loadFromStorage(STORAGE_KEYS.registeredUsers, [] as RegisteredUser[])
-    if (saved.length < 10) {
+    if (!saved || saved.length < 10) {
       return SEED_REGISTERED_USERS as RegisteredUser[]
     }
     return saved
