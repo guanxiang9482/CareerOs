@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useAppContext } from '../../data/AppContext'
-import { DEMO_CANDIDATE, MARKET_MIN_SALARY, JOBS } from '../../data/mockData'
+import { DEMO_CANDIDATE, MARKET_MIN_SALARY, JOBS, CANDIDATES, type FieldKey } from '../../data/mockData'
 import { Card, SectionHeading, BaselineSlider, Eyebrow} from '../../components/ui'
 
 export function DiscoverTab() {
   const { 
+    authedName, // FIXED: Grab real session user name instead of candidateProfile
     selectedJobId, 
     setSelectedJobId, 
     rentInput, 
@@ -17,7 +18,10 @@ export function DiscoverTab() {
     hasApplied
   } = useAppContext()
   
-  const c = DEMO_CANDIDATE
+  // Use the active logged in user profile matched by name, otherwise fallback
+  const c = useMemo(() => {
+    return CANDIDATES.find(cand => cand.name === authedName) || DEMO_CANDIDATE
+  }, [authedName])
 
   // Extended dynamic modifier variables
   const [dependants, setDependants] = useState<number>(0)
@@ -34,19 +38,19 @@ export function DiscoverTab() {
   const [isExplorerOpen, setIsExplorerOpen] = useState<boolean>(false)
   const [explorerSearch, setExplorerSearch] = useState<string>('')
 
-  // Dynamically extract targeted matching roles
+  // Dynamically extract targeted matching roles using the live session user's field
   const targetedMatches = useMemo(() => {
     return JOBS.filter(j => j.field === c.field || j.field === 'Computer Science')
       .map(j => ({ ...j, fitRate: Math.min(97, 70 + (j.salaryMin % 26)) }))
       .sort((a, b) => b.fitRate - a.fitRate)
   }, [c.field])
 
-  const selectedJob = JOBS.find(m => m.id === selectedJobId) || targetedMatches[0]
+  const selectedJob = JOBS.find(m => m.id === selectedJobId) || targetedMatches[0] || JOBS[0]
   const alreadyApplied = hasApplied(selectedJob.id)
 
-  // Dynamic Multi-Tier Compensation Data Mapping
+  // Dynamic Multi-Tier Compensation Data Mapping (FIXED: Casted to FieldKey)
   const tierBenchmarks = useMemo(() => {
-    const base = MARKET_MIN_SALARY[selectedJob.field] || 3800
+    const base = MARKET_MIN_SALARY[selectedJob.field as FieldKey] || 3800
     return {
       'Tier 1 (KL/Selangor)': { min: base, max: Math.round(base * 1.5), label: 'Tier 1 (KL / Selangor Cluster)' },
       'Tier 2 (Penang/JB)': { min: Math.round(base * 0.85), max: Math.round(base * 1.3), label: 'Tier 2 (Penang / JB Cluster)' },
@@ -72,7 +76,7 @@ export function DiscoverTab() {
     dependantCostMultiplier
 
   const monthlyDisposable = grossSalary - totalExpenses
-  const marketBaseline = MARKET_MIN_SALARY[c.field] || 3800
+  const marketBaseline = MARKET_MIN_SALARY[c.field as FieldKey] || 3800 // FIXED: Casted to FieldKey
 
   // Filtered all jobs pool for the Explorer Drawer Modal
   const filteredExplorerJobs = useMemo(() => {
@@ -102,7 +106,7 @@ export function DiscoverTab() {
             eyebrow="Fair Pay Core" 
             title="Open Market" 
             italicWord="Opportunities" 
-            description="Calibrate your localized expenses against active corporate job updates dynamically." 
+            description={`Calibrate your localized expenses against active corporate job updates matching your ${c.field} profile.`}
           />
         </div>
         <button 
@@ -216,7 +220,7 @@ export function DiscoverTab() {
         {/* Right-Hand Column Workspace Display Layout Area */}
         <div className="lg:col-span-8 space-y-6">
           
-          {/* 1. Dynamic Geographic Multi-Tier Horizontal Bar Chart Component (NOW ON TOP) */}
+          {/* 1. Dynamic Geographic Multi-Tier Horizontal Bar Chart Component */}
           <Card className="p-6 bg-white border border-[#EBE7E0] rounded-xl space-y-4">
             <div>
               <span className="text-[10px] font-mono uppercase tracking-widest text-[#9A7B56] font-bold block">Comparative Telemetry Matrix</span>

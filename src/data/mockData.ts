@@ -1,6 +1,3 @@
-// CareerOS deterministic mock dataset
-// Seeded PRNG so every reload / judge session sees identical numbers.
-
 function mulberry32(seed: number) {
   return function () {
     seed |= 0
@@ -31,7 +28,6 @@ export const FIELDS: FieldKey[] = [
   'Marketing & Communications',
 ]
 
-
 export const UNIVERSITIES = [
   'Universiti Malaya (UM)',
   'Universiti Teknologi Malaysia (UTM)',
@@ -41,20 +37,31 @@ export const UNIVERSITIES = [
   'Monash University Malaysia',
   'HELP University',
   'Sunway University',
-  'Taylor\'s University',
+  "Taylor's University",
   'Multimedia University (MMU)',
 ]
 
-export const COMPANIES = [
-  { name: 'CIMB Group', industry: 'Banking & Finance' },
-  { name: 'Petronas', industry: 'Energy' },
-  { name: 'Grab Malaysia', industry: 'Technology' },
-  { name: 'Maybank', industry: 'Banking & Finance' },
-  { name: 'AirAsia', industry: 'Aviation & Travel' },
-  { name: 'Shopee Malaysia', industry: 'E-commerce' },
-  { name: 'Nestlé Malaysia', industry: 'FMCG' },
-  { name: 'Axiata Group', industry: 'Telecommunications' },
+const BASE_COMPANIES = [
+  'CIMB', 'Petronas', 'Grab', 'Maybank', 'AirAsia', 'Shopee', 'Nestlé', 'Axiata', 'Public Bank', 'RHB',
+  'Hong Leong', 'Tenaga Nasional', 'Sime Darby', 'IHH Healthcare', 'Sunway', 'IOI', 'Genting', 'Digi', 'Celcom', 'U Mobile',
+  'Astro', 'Media Prima', 'Lazada', 'Foodpanda', 'Touch n Go', 'Boost', 'PayNet', 'Proton', 'Perodua', 'UEM',
+  'Gamuda', 'YTL', 'Top Glove', 'Hartalega', 'Petron', 'Shell', 'DHL', 'Pos Malaysia', 'J&T Express', 'Prudential'
 ]
+const SUFFIXES = ['Group', 'Holdings', 'Technologies', 'Solutions', 'Partners', 'Ventures']
+
+export const COMPANIES = Array.from({ length: 240 }, (_, i) => {
+  if (i < BASE_COMPANIES.length) {
+    const name = BASE_COMPANIES[i]
+    let industry = 'Technology'
+    if (['CIMB', 'Maybank', 'Public Bank', 'RHB', 'Hong Leong', 'Touch n Go', 'Boost', 'PayNet'].includes(name)) industry = 'Banking & Finance'
+    if (['Petronas', 'Tenaga Nasional', 'Petron', 'Shell'].includes(name)) industry = 'Energy'
+    return { name: name.includes(' ') ? name : `${name} Group`, industry }
+  }
+  return { 
+    name: `${pick(BASE_COMPANIES)} ${pick(SUFFIXES)}`, 
+    industry: pick(['Technology', 'Banking & Finance', 'Energy', 'Logistics', 'Healthcare', 'Manufacturing']) 
+  }
+})
 
 export const LOCATIONS = [
   'Cheras', 'Penang', 'Kepong', 'Bangsar South', 'Petaling Jaya', 'Klang', 'Shah Alam', 'Setia Alam', 'Putrajaya', 'Cyberjaya'
@@ -91,7 +98,7 @@ export interface CandidateRecord {
   cityTier: 'Tier 1 (KL/Selangor)' | 'Tier 2 (Penang/JB)' | 'Tier 3 (Other states)'
 }
 
-export const CANDIDATES: CandidateRecord[] = Array.from({ length: 2000 }, (_, i) => {
+export const CANDIDATES: CandidateRecord[] = Array.from({ length: 650 }, (_, i) => {
   const field = pick(FIELDS)
   const university = pick(UNIVERSITIES)
   const gradYear = pick([2024, 2025, 2026])
@@ -135,7 +142,7 @@ export interface JobPosting {
   hired: number
 }
 
-export const JOBS: JobPosting[] = Array.from({ length: 500 }, (_, i) => {
+export const JOBS: JobPosting[] = Array.from({ length: 800 }, (_, i) => {
   const field = pick(FIELDS)
   const role = pick(ROLES[field])
   const salaryMin = randInt(2800, 5000)
@@ -160,6 +167,24 @@ export const JOBS: JobPosting[] = Array.from({ length: 500 }, (_, i) => {
     hired,
   }
 })
+
+export const SEED_REGISTERED_USERS = [
+  { email: 'aisyah.yusof@email.com', name: 'Aisyah Yusof', role: 'candidate', password: 'password123' },
+  { email: 'admin@cimb.com', name: 'CIMB Group', role: 'employer', password: 'password123' },
+  { email: 'admin@um.edu.my', name: 'Universiti Malaya', role: 'university', password: 'password123' },
+  ...CANDIDATES.map(c => ({
+    email: `${c.name.split(' ')[0].toLowerCase()}${c.id.split('-')[1]}@candidate.com`,
+    name: c.name,
+    role: 'candidate' as const,
+    password: 'password123'
+  })),
+  ...COMPANIES.map(c => ({
+    email: `admin@${c.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+    name: c.name,
+    role: 'employer' as const,
+    password: 'password123'
+  }))
+]
 
 export const COST_OF_LIVING: Record<CandidateRecord['cityTier'], { rent: number; transport: number; living: number; taxRate: number }> = {
   'Tier 1 (KL/Selangor)': { rent: 1450, transport: 420, living: 900, taxRate: 0.08 },
@@ -228,3 +253,173 @@ export const CAREER_PATH_STEPS = [
   { role: 'Senior Backend Engineer', medianMonths: 54, medianSalary: 6800 },
   { role: 'Engineering Lead', medianMonths: 84, medianSalary: 9800 },
 ]
+
+export const TEAMS = [
+  'Retail Banking Operations',
+  'Technology & Digital',
+  'Risk & Compliance',
+  'Corporate Banking',
+  'Customer Experience',
+  'Human Resources',
+  'Finance & Treasury',
+]
+
+const TEAM_PROMOTION_CYCLE: Record<string, number> = {
+  'Retail Banking Operations': 26,
+  'Technology & Digital': 20,
+  'Risk & Compliance': 30,
+  'Corporate Banking': 28,
+  'Customer Experience': 22,
+  'Human Resources': 27,
+  'Finance & Treasury': 29,
+}
+
+const TEAM_ROLE_TITLES: Record<string, string[]> = {
+  'Retail Banking Operations': ['Branch Officer', 'Operations Executive', 'Teller Supervisor'],
+  'Technology & Digital': ['Software Engineer', 'Product Analyst', 'IT Support Specialist'],
+  'Risk & Compliance': ['Compliance Analyst', 'Risk Officer', 'AML Investigator'],
+  'Corporate Banking': ['Relationship Manager', 'Credit Analyst', 'Corporate Banking Associate'],
+  'Customer Experience': ['Customer Service Executive', 'Contact Centre Agent', 'CX Specialist'],
+  'Human Resources': ['HR Executive', 'Talent Acquisition Partner', 'People Ops Analyst'],
+  'Finance & Treasury': ['Finance Executive', 'Treasury Analyst', 'Financial Reporting Associate'],
+}
+
+const TEAM_MANAGERS: Record<string, string[]> = {}
+TEAMS.forEach((team, i) => {
+  TEAM_MANAGERS[team] = [pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES), pick(FIRST_NAMES) + ' ' + pick(LAST_NAMES)]
+  void i
+})
+
+export interface WorkforceRecord {
+  id: string
+  name: string
+  team: string
+  role: string
+  managerName: string
+  tenureMonths: number
+  typicalPromotionCycleMonths: number
+  lastPortfolioUpdateDaysAgo: number
+  recentCredentialUpdate: boolean
+  riskLevel: 'Stable' | 'Watch' | 'Elevated'
+  riskSignals: string[]
+}
+
+export const WORKFORCE: WorkforceRecord[] = Array.from({ length: 240 }, (_, i) => {
+  const team = TEAMS[i % TEAMS.length]
+  const typicalPromotionCycleMonths = TEAM_PROMOTION_CYCLE[team]
+  const tenureMonths = randInt(3, 96)
+  const lastPortfolioUpdateDaysAgo = randInt(1, 160)
+  const recentCredentialUpdate = rand() < 0.22
+
+  const signals: string[] = []
+  let score = 0
+  if (lastPortfolioUpdateDaysAgo > 90) {
+    score += 1
+    signals.push(`${lastPortfolioUpdateDaysAgo}+ days without a portfolio update`)
+  }
+  if (recentCredentialUpdate) {
+    score += 1
+    signals.push('New certificate/experience logged in the last 30 days')
+  }
+  if (tenureMonths > typicalPromotionCycleMonths * 1.25) {
+    score += 1
+    signals.push(`${tenureMonths} months in role vs. a ${typicalPromotionCycleMonths}-month typical promotion cycle`)
+  }
+  const riskLevel: WorkforceRecord['riskLevel'] = score >= 2 ? 'Elevated' : score === 1 ? 'Watch' : 'Stable'
+
+  return {
+    id: `EMP-${5000 + i}`,
+    name: `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`,
+    team,
+    role: pick(TEAM_ROLE_TITLES[team]),
+    managerName: pick(TEAM_MANAGERS[team]),
+    tenureMonths,
+    typicalPromotionCycleMonths,
+    lastPortfolioUpdateDaysAgo,
+    recentCredentialUpdate,
+    riskLevel,
+    riskSignals: signals,
+  }
+})
+
+export interface ExitSurveyRollup {
+  team: string
+  quarter: string
+  respondentCount: number
+  thresholdMet: boolean
+  themes: { management: number; workload: number; pay: number; growth: number; other: number }
+  topThemeNote: string
+}
+
+const ANONYMITY_THRESHOLD = 3
+
+export const EXIT_SURVEYS: ExitSurveyRollup[] = TEAMS.map((team) => {
+  const respondentCount = randInt(1, 7)
+  const thresholdMet = respondentCount >= ANONYMITY_THRESHOLD
+  const rawWeights = { management: rand(), workload: rand(), pay: rand(), growth: rand(), other: rand() * 0.4 }
+  const totalWeight = Object.values(rawWeights).reduce((a, b) => a + b, 0)
+  const themes = {
+    management: Math.round((rawWeights.management / totalWeight) * 100),
+    workload: Math.round((rawWeights.workload / totalWeight) * 100),
+    pay: Math.round((rawWeights.pay / totalWeight) * 100),
+    growth: Math.round((rawWeights.growth / totalWeight) * 100),
+    other: Math.round((rawWeights.other / totalWeight) * 100),
+  }
+  const topKey = (Object.keys(themes) as (keyof typeof themes)[]).reduce((a, b) => (themes[a] >= themes[b] ? a : b))
+  const noteByTheme: Record<string, string> = {
+    management: '"What would have kept you?" responses most often pointed to manager support and feedback.',
+    workload: 'Sustained workload and coverage gaps came up most often in the open-text response.',
+    pay: 'Compensation relative to role scope was the most cited factor.',
+    growth: 'Limited visibility into the next promotion step was the most cited factor.',
+    other: 'Reasons were spread across factors outside the standard tag set.',
+  }
+  return {
+    team,
+    quarter: 'Q2 2026',
+    respondentCount,
+    thresholdMet,
+    themes,
+    topThemeNote: noteByTheme[topKey],
+  }
+})
+
+export interface FairPayAggregate {
+  jobId: string
+  role: string
+  company: string
+  respondentCount: number
+  pctComfortable: number
+  pctTight: number
+  pctNotSustainable: number
+  avgDisposable: number
+}
+
+// FAIRPAY_FEEDBACK expanded to map dynamically to all jobs so it renders for any logged-in employer
+export const FAIRPAY_FEEDBACK: FairPayAggregate[] = JOBS.map((j) => {
+  const respondentCount = randInt(8, 64)
+  const a = rand()
+  const b = rand()
+  const pctComfortable = Math.round(35 + a * 40)
+  const pctNotSustainable = Math.round(5 + b * 20)
+  const pctTight = 100 - pctComfortable - pctNotSustainable
+  return {
+    jobId: j.id,
+    role: j.role,
+    company: j.company,
+    respondentCount,
+    pctComfortable,
+    pctTight: Math.max(0, pctTight),
+    pctNotSustainable,
+    avgDisposable: randInt(-300, 1800),
+  }
+})
+
+export const REJECTION_REASONS = [
+  'Role filled internally',
+  'Missing required certification',
+  'Insufficient relevant experience',
+  'Skills mismatch for this role',
+  'Position paused / on hold',
+]
+
+export const SLA_WINDOW_DAYS = 28

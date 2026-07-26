@@ -3,14 +3,12 @@ import { useAppContext } from '../../data/AppContext'
 import { DEMO_CANDIDATE } from '../../data/mockData'
 import { DashboardLayout, type SidebarSection } from '../../components/DashboardLayout'
 
-// Sibling Workspace Component Imports
 import { TodayTab } from './TodayTab'
 import { DiscoverTab } from './DiscoverTab'
 import { ApplicationTracker } from './ApplicationTracker'
 import { PortfolioTab } from './PortfolioTab'
 import { CompassTab } from './CompassTab'
 import { HavenTab } from './HavenTab'
-import { LifeChapterDesigner } from './LifeChapterDesigner'
 
 const SECTIONS: SidebarSection[] = [
   { id: 'today', label: 'Today' },
@@ -19,30 +17,24 @@ const SECTIONS: SidebarSection[] = [
   { id: 'portfolio', label: 'Living Portfolio' },
   { id: 'compass', label: 'Compass' },
   { id: 'haven', label: 'Haven Assistant' },
-  { id: 'chapters', label: 'Life Chapters' }
 ]
 
 export function CandidateView({ onSwitchRole }: { onSwitchRole: () => void }) {
-  const { applications, injectDockerProject, userSkills } = useAppContext()
+  // FIXED: Removed the unused 'userSkills' reference
+  const { applications, injectDockerProject, authedName } = useAppContext()
+  
   const c = DEMO_CANDIDATE
-  const aisyahApp = applications.find((a) => a.candidateId === c.id)
+  
+  // LIVE LINK LOGIC: Filter applications specifically for this logged in candidate name
+  const candidateApps = applications.filter((a) => a.candidateName === (authedName || c.name))
 
-  const hasSystemDesign = userSkills.includes('System Design')
-  const calculatedScore = hasSystemDesign ? 94 : 78
-
-  // State pointer separating individual tabs completely
   const [activeTab, setActiveTab] = useState('today')
 
-  // Catches clicks on the sidebar items inside DashboardLayout and shifts state immediately
   useEffect(() => {
     const handleSidebarClick = (e: MouseEvent) => {
       let element = e.target as HTMLElement | null
-      
-      // Traverse up to safely inspect button wrappers or text nodes
       while (element && element !== document.body) {
         const textContent = element.textContent?.trim()
-        
-        // Match element text context directly with sidebar section labels
         const match = SECTIONS.find(s => s.label.toLowerCase() === textContent?.toLowerCase())
         if (match) {
           setActiveTab(match.id)
@@ -51,20 +43,18 @@ export function CandidateView({ onSwitchRole }: { onSwitchRole: () => void }) {
         element = element.parentElement
       }
     }
-
     window.addEventListener('click', handleSidebarClick)
     return () => window.removeEventListener('click', handleSidebarClick)
   }, [])
 
   return (
     <DashboardLayout
-      roleLabel="Candidate"
-      personaName={c.name}
+      roleLabel="Candidate View"
+      personaName={authedName || c.name}
       personaSub={`${c.university} · Class of ${c.gradYear}`}
       sections={SECTIONS}
       onSwitchRole={onSwitchRole}
     >
-      {/* Container stage containing exclusively the active tab element wrapper */}
       <div className="w-full min-h-[calc(100vh-6rem)] bg-transparent">
         
         {activeTab === 'today' && (
@@ -79,19 +69,13 @@ export function CandidateView({ onSwitchRole }: { onSwitchRole: () => void }) {
           </div>
         )}
 
+        {/* Passing the full array of candidate applications here */}
         {activeTab === 'tracker' && (
           <div id="tracker" className="animate-fade-in">
-            {aisyahApp && (
-              <ApplicationTracker 
-                application={{
-                  ...aisyahApp,
-                  stage: hasSystemDesign ? 'Reviewing Queue' : aisyahApp.stage,
-                  missingSkills: hasSystemDesign ? [] : aisyahApp.missingSkills,
-                  matchScore: calculatedScore
-                }} 
-                onInjectDockerProject={(id) => injectDockerProject(id)} 
-              />
-            )}
+            <ApplicationTracker 
+              applications={candidateApps} 
+              onInjectDockerProject={(id) => injectDockerProject(id)} 
+            />
           </div>
         )}
 
@@ -110,12 +94,6 @@ export function CandidateView({ onSwitchRole }: { onSwitchRole: () => void }) {
         {activeTab === 'haven' && (
           <div id="haven" className="animate-fade-in">
             <HavenTab />
-          </div>
-        )}
-
-        {activeTab === 'chapters' && (
-          <div id="chapters" className="animate-fade-in">
-            <LifeChapterDesigner />
           </div>
         )}
 

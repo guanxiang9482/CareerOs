@@ -47,9 +47,9 @@ export function DashboardLayout({ roleLabel, personaName, personaSub, sections, 
             </div>
             <button
               onClick={handleSwitchRole}
-              className="rounded-full border border-[#EBE7E0] px-3.5 py-1.5 text-xs font-medium text-[#6B5A44] hover:bg-[#F6F3EE]"
+              className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors border-none cursor-pointer"
             >
-              Switch role
+              Log Out
             </button>
           </div>
         </div>

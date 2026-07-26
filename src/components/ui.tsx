@@ -115,6 +115,30 @@ export function BaselineSlider({
   )
 }
 
+// A single labeled percentage row backed by ProgressBar — used for exit
+// survey theme rollups (Employer) and employer-demand breakdowns (University).
+export function MiniBarRow({
+  label,
+  pct,
+  tone = 'indigo',
+  suffix,
+}: {
+  label: string
+  pct: number
+  tone?: 'indigo' | 'emerald' | 'amber'
+  suffix?: string
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-xs">
+        <span className="text-[#0B1E33]">{label}</span>
+        <span className="font-mono text-[#9A7B56]">{pct}%{suffix ? ` · ${suffix}` : ''}</span>
+      </div>
+      <ProgressBar value={pct} tone={tone} />
+    </div>
+  )
+}
+
 export function SectionHeading({ eyebrow, title, description, italicWord }: { eyebrow: string; title: string; description?: string; italicWord?: string }) {
   return (
     <div className="mb-6">

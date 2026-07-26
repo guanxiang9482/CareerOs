@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { UNIVERSITY_STATS, FACULTY_BENCHMARKS, CANDIDATES } from '../data/mockData'
+import { UNIVERSITY_STATS, FACULTY_BENCHMARKS, CANDIDATES, JOBS, FIELDS } from '../data/mockData'
 import { useAppContext } from '../data/AppContext'
-import { Card, Badge, ProgressBar, StatBlock, SectionHeading } from '../components/ui'
+import { Card, Badge, ProgressBar, StatBlock, SectionHeading, MiniBarRow } from '../components/ui'
 import { DashboardLayout, type SidebarSection } from '../components/DashboardLayout'
 
 type Segment = 'All' | 'On Track' | 'Needs a Nudge' | 'At Risk'
@@ -9,6 +9,8 @@ type Segment = 'All' | 'On Track' | 'Needs a Nudge' | 'At Risk'
 const SECTIONS: SidebarSection[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'benchmarks', label: 'Faculty Benchmarks' },
+  { id: 'demand', label: 'Employer Demand Signals' },
+  { id: 'pipeline', label: 'Placement Pipeline' },
   { id: 'segments', label: 'Student Segments' },
 ]
 
@@ -49,6 +51,52 @@ export function UniversityView({ onSwitchRole }: { onSwitchRole: () => void }) {
     }
   }, [cohortWithLiveStatus])
 
+  // ---- Employer Demand Signals: live job-market demand per field, set
+  // against each faculty's employability rate, so curriculum planning can
+  // see where graduate output and employer demand are (mis)aligned. ----
+  const demandByField = useMemo(() => {
+    const totalOpenings = JOBS.length
+    return FIELDS.map((field) => {
+      const openings = JOBS.filter((j) => j.field === field).length
+      const avgSalary = Math.round(
+        JOBS.filter((j) => j.field === field).reduce((sum, j) => sum + (j.salaryMin + j.salaryMax) / 2, 0) / Math.max(1, openings)
+      )
+      const benchmark = FACULTY_BENCHMARKS.find((f) => f.faculty === field)
+      const gradsInField = CANDIDATES.filter((c) => c.university === um.university && c.field === field).length
+      return {
+        field,
+        sharePct: Math.round((openings / totalOpenings) * 100),
+        openings,
+        avgSalary,
+        employabilityRate: benchmark?.employabilityRate ?? 0,
+        gradsInField,
+      }
+    }).sort((a, b) => b.sharePct - a.sharePct)
+  }, [um.university])
+
+  // ---- Placement Pipeline: this university's own cohort funnel, built
+  // from live application data rather than a static number. ----
+  const universityApplications = useMemo(
+    () => applications.filter((a) => a.university === um.university),
+    [applications, um.university]
+  )
+
+  const pipelineDisplay = useMemo(() => {
+    const applied = universityApplications.length
+    const notQualified = universityApplications.filter((a) => a.stage === 'Not Qualified').length
+    const screened = applied - notQualified
+    const interview = universityApplications.filter((a) => a.stage === 'Reviewing Queue' || a.stage === 'Top Tier Pool' || a.stage === 'Hired').length
+    const offer = universityApplications.filter((a) => a.stage === 'Top Tier Pool' || a.stage === 'Hired').length
+    const hired = universityApplications.filter((a) => a.stage === 'Hired').length
+    return [
+      { label: 'Applied', value: applied },
+      { label: 'Screened', value: screened },
+      { label: 'Interview', value: interview },
+      { label: 'Offer', value: offer },
+      { label: 'Hired', value: hired },
+    ]
+  }, [universityApplications])
+
   return (
     <DashboardLayout roleLabel="University" personaName="Universiti Malaya" personaSub="Career & Placement Office" sections={SECTIONS} onSwitchRole={onSwitchRole}>
       <section id="overview" className="scroll-mt-24">
@@ -75,6 +123,67 @@ export function UniversityView({ onSwitchRole }: { onSwitchRole: () => void }) {
                 <ProgressBar value={f.employabilityRate} tone={f.employabilityRate > 80 ? 'emerald' : f.employabilityRate > 65 ? 'indigo' : 'amber'} />
               </div>
             ))}
+          </div>
+        </Card>
+      </section>
+
+      {/* ---------------- Employer Demand Signals ---------------- */}
+      <section id="demand" className="scroll-mt-24">
+        <SectionHeading
+          eyebrow="Market Signal"
+          title="Employer Demand"
+          italicWord="Signals"
+          description="Live open-role demand across the job market, set against each faculty's employability rate — a quick read on where curriculum output and employer demand are aligned, and where they're drifting apart."
+        />
+        <Card className="p-7">
+          <div className="space-y-5">
+            {demandByField.map((d) => {
+              const misaligned = d.gradsInField > 150 && d.employabilityRate < 75
+              return (
+                <div key={d.field}>
+                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="text-[#0B1E33]">{d.field}</span>
+                    <span className="font-mono text-[11px] text-[#9A7B56]">
+                      {d.openings} open roles · avg RM {d.avgSalary.toLocaleString()} · {d.gradsInField} UM grads tracked
+                    </span>
+                  </div>
+                  <MiniBarRow label={`${d.sharePct}% of live market demand`} pct={d.sharePct} tone={misaligned ? 'amber' : 'indigo'} suffix={`${d.employabilityRate}% employability`} />
+                  {misaligned && (
+                    <p className="mt-1 text-[11px] text-[#9A7B56]">
+                      A larger graduate pool than current employer demand and market employability would suggest — worth a curriculum-alignment look.
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      </section>
+
+      {/* ---------------- Placement Pipeline ---------------- */}
+      <section id="pipeline" className="scroll-mt-24">
+        <Card className="p-7">
+          <p className="mb-1.5 text-sm font-semibold text-[#0B1E33]">
+            {um.university.split(' (')[0]} cohort <span className="font-serif italic font-normal text-[#9A7B56]">placement pipeline</span>
+          </p>
+          <p className="mb-5 text-xs text-[#6B5A44]">Built from this cohort's live applications, not a static once-a-year survey.</p>
+          <div className="flex items-end gap-3">
+            {pipelineDisplay.map((s, i) => {
+              const max = Math.max(1, pipelineDisplay[0].value)
+              const heightPct = Math.max(8, Math.round((s.value / max) * 100))
+              return (
+                <div key={s.label} className="flex flex-1 flex-col items-center gap-2">
+                  <div className="flex h-40 w-full items-end">
+                    <div
+                      className="w-full rounded-t-md bg-[#0B1E33] transition-all duration-500"
+                      style={{ height: `${heightPct}%`, opacity: 1 - i * 0.12 }}
+                    />
+                  </div>
+                  <p className="font-mono text-lg font-bold text-[#0B1E33]">{s.value.toLocaleString()}</p>
+                  <p className="text-xs text-[#9A7B56]">{s.label}</p>
+                </div>
+              )
+            })}
           </div>
         </Card>
       </section>

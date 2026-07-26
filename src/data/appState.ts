@@ -15,13 +15,42 @@ export interface ApplicationRecord {
   matchScore: number
   missingSkills: string[]
   portfolioScore: number
+  
+  // MERGED: Teammate's SLA tracking and Feedback fields
+  daysSinceApplied: number
+  employerFeedbackReason?: string
+  employerNote?: string
 }
 
-// The demo job Aisyah is tracked against throughout the walkthrough.
+// MERGED: SLA Windows & Labels from teammate's version
+export const SLA_WINDOW_DAYS = 28
+export type SlaStatus = 'On Track' | 'Due Soon' | 'Breached' | 'Resolved'
+
+export function getSlaStatus(app: Pick<ApplicationRecord, 'stage' | 'daysSinceApplied'>): SlaStatus {
+  if (app.stage === 'Hired' || app.stage === 'Not Qualified') return 'Resolved'
+  if (app.daysSinceApplied >= SLA_WINDOW_DAYS) return 'Breached'
+  if (app.daysSinceApplied >= SLA_WINDOW_DAYS - 7) return 'Due Soon'
+  return 'On Track'
+}
+
+export function stageDisplayLabel(stage: PipelineStage): string {
+  return stage === 'Not Qualified' ? 'Not a match this time' : stage
+}
+
+// Deterministic PRNG for stable daysSinceApplied seeding
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+const slaRand = mulberry32(20260728)
+
 export const FEATURED_JOB: JobPosting = JOBS.find((j) => j.role === 'Backend Engineer') ?? JOBS[0]
 
-// Aisyah's seed application: starts in "Not Qualified" because of a missing
-// System Design skill. Clicking Haven's suggestion promotes her to Reviewing Queue.
 const AISYAH_APPLICATION: ApplicationRecord = {
   id: 'APP-0001',
   candidateId: DEMO_CANDIDATE.id,
@@ -35,12 +64,10 @@ const AISYAH_APPLICATION: ApplicationRecord = {
   matchScore: 78,
   missingSkills: ['System Design'],
   portfolioScore: DEMO_CANDIDATE.portfolioScore,
+  daysSinceApplied: 5, // Merged
 }
 
-// A handful of supporting applications so the kanban board and employer feed
-// don't look empty with just one card in play.
 function buildSupportingApplications(): ApplicationRecord[] {
-  // Scale from 24 up to 400 to populate the multi-tenant metrics dashboards realistically
   const pool = CANDIDATES.slice(0, 400)
   const stages: PipelineStage[] = ['Queueing', 'Reviewing Queue', 'Top Tier Pool', 'Not Qualified', 'Hired']
   return pool.map((c, i) => {
@@ -58,6 +85,7 @@ function buildSupportingApplications(): ApplicationRecord[] {
       matchScore: Math.min(97, 50 + c.portfolioScore * 0.5),
       missingSkills: c.portfolioScore < 55 ? ['System Design'] : [],
       portfolioScore: c.portfolioScore,
+      daysSinceApplied: Math.floor(slaRand() * 40), // Merged
     }
   })
 }
@@ -66,10 +94,7 @@ export const INITIAL_APPLICATIONS: ApplicationRecord[] = [AISYAH_APPLICATION, ..
 
 export const KANBAN_STAGES: PipelineStage[] = ['Top Tier Pool', 'Reviewing Queue', 'Queueing', 'Not Qualified']
 
-// --- Living Portfolio persistence shapes ------------------------------------
-// Created once at registration, then read/written by PortfolioTab as the
-// candidate adds projects, experience, and certificates during later logins.
-
+// --- Living Portfolio persistence shapes (Original Base Logic preserved) ---
 export interface PortfolioExperience {
   role: string
   company: string
@@ -108,9 +133,6 @@ export interface PortfolioRecord {
   projects: PortfolioProject[]
 }
 
-// Single scoring function shared by registration preview and the live
-// Portfolio tab, so the grade never diverges depending on which screen
-// computed it.
 export function calculatePortfolioScore(p: Pick<PortfolioRecord, 'skills' | 'certificates' | 'experiences' | 'projects'>): number {
   const verifiedCount = p.certificates.filter((c) => c.status === 'Verified').length
   return Math.min(
@@ -132,7 +154,6 @@ export function createEmptyPortfolio(email: string, name: string, headline: stri
   }
 }
 
-// Registration form → the same PortfolioRecord shape PortfolioTab reads/writes.
 export interface RegistrationPortfolioInput {
   email: string
   name: string
@@ -185,10 +206,6 @@ export function createPortfolioFromRegistration(input: RegistrationPortfolioInpu
   }
 }
 
-// --- Registered users (localStorage-backed auth stand-in) ------------------
-// Not real auth — password stored in plaintext for demo only. Never ship
-// this pattern to production; it exists so login can gate views locally.
-
 export interface RegisteredUser {
   email: string
   name: string
@@ -198,4 +215,3 @@ export interface RegisteredUser {
 
 export type RegisterResult = { ok: true } | { ok: false; error: string }
 export type LoginResult = { ok: true; user: RegisteredUser } | { ok: false; error: string }
-

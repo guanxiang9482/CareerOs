@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { DEMO_CANDIDATE, JOBS } from '../data/mockData'
+import { DEMO_CANDIDATE, JOBS, COMPANIES } from '../data/mockData'
 import { Eyebrow } from '../components/ui'
 import { useAppContext } from '../data/AppContext'
 
@@ -25,17 +25,6 @@ export const ROLE_META: Record<RoleKey, { title: string; blurb: string; persona:
     sub: 'Career & Placement Office',
   },
 }
-
-const FEATURED_COMPANIES = [
-  { name: 'CIMB Group', industry: 'Banking & Finance', location: 'Kuala Lumpur', roles: 19, icon: 'C' },
-  { name: 'HSBC', industry: 'Banking & Finance', location: 'Kuala Lumpur', roles: 18, icon: 'H' },
-  { name: 'Unilever', industry: 'Retail & FMCG', location: 'Petaling Jaya', roles: 13, icon: 'U' },
-  { name: 'Intel', industry: 'Engineering', location: 'Penang', roles: 31, icon: 'I' },
-  { name: 'Shell', industry: 'Energy', location: 'Cyberjaya', roles: 24, icon: 'S' },
-  { name: 'Grab Malaysia', industry: 'Technology', location: 'Singapore', roles: 21, icon: 'G' },
-  { name: 'Microsoft', industry: 'Technology', location: 'Kuala Lumpur', roles: 16, icon: 'M' },
-  { name: 'Dell', industry: 'Technology', location: 'Cyberjaya', roles: 15, icon: 'D' },
-]
 
 const MARKET_LADDER = [
   { tier: 'JUNIOR 0–2 YRS', role: 'Marketing Executive', pay: 'RM 2,800–4,000', change: '+9%' },
@@ -105,9 +94,6 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
     setSubView('SEARCH')
   }
 
-  // Real text-match filtering against role, company, and location, since the
-  // placeholder ("graduate tech jobs above RM 4k") implies searching postings,
-  // not just opening the company directory unfiltered.
   const heroSearchResults = useMemo(() => {
     const q = heroSearchQuery.trim().toLowerCase()
     if (!q) return []
@@ -127,9 +113,24 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
     return () => clearInterval(interval)
   }, [subView])
 
+  // --- DYNAMIC LOGIC FIX ---
+  // Replaces the hardcoded FEATURED_COMPANIES with real database entities
+  const dynamicCompanies = useMemo(() => {
+    return COMPANIES.map(c => {
+      const companyJobs = JOBS.filter(j => j.company === c.name)
+      return {
+        name: c.name,
+        industry: c.industry,
+        location: companyJobs.length > 0 ? companyJobs[0].location : 'Multiple Locations',
+        roles: companyJobs.length,
+        icon: c.name.charAt(0)
+      }
+    }).filter(c => c.roles > 0).sort((a, b) => b.roles - a.roles) // Only show companies that actually have jobs
+  }, [])
+
   const selectedCompanyProfile = useMemo<CompanyProfile>(() => {
-    const featuredNormalized = FEATURED_COMPANIES.map(c => ({
-      name: c.name, industry: c.industry, location: c.location, rating: '4.4', openRoles: c.roles, icon: c.icon, followers: '12k', partner: 'Premier Partner'
+    const dynamicNormalized = dynamicCompanies.map(c => ({
+      name: c.name, industry: c.industry, location: c.location, rating: '4.4', openRoles: c.roles, icon: c.icon, followers: '12k', partner: 'Verified Employer'
     }))
     const spotlightNormalized = SPOTLIGHT_COMPANIES.map(c => ({
       name: c.name, industry: c.industry, location: c.location, rating: c.rating, openRoles: c.openRoles, tag: c.tag, blurb: c.blurb, desc: c.desc, employees: c.employees, hubs: c.hubs, followers: '15k', partner: 'Premier Partner'
@@ -138,23 +139,23 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
       name: c.name, industry: c.industry, location: c.location, rating: c.rating, openRoles: c.openRoles, tag: c.tag, blurb: c.blurb, desc: c.desc, employees: c.employees, hubs: c.hubs, followers: '10k', partner: 'Verified Employer'
     }))
 
-    const allPools = [...featuredNormalized, ...spotlightNormalized, ...fastGrowthNormalized]
+    const allPools = [...dynamicNormalized, ...spotlightNormalized, ...fastGrowthNormalized]
     return allPools.find(c => c.name.toLowerCase() === selectedCompanyName.toLowerCase()) || 
-           { name: selectedCompanyName, industry: 'Technology', location: 'Kuala Lumpur', rating: '4.4', openRoles: 4, followers: '5k', partner: 'Verified Employer' }
-  }, [selectedCompanyName])
+           { name: selectedCompanyName, industry: 'Technology', location: 'Kuala Lumpur', rating: '4.4', openRoles: 0, followers: '5k', partner: 'Verified Employer' }
+  }, [selectedCompanyName, dynamicCompanies])
 
   const companyRoles = useMemo(() => {
     return JOBS.filter(j => j.company.toLowerCase().includes(selectedCompanyName.toLowerCase()) || selectedCompanyName.toLowerCase().includes(j.company.toLowerCase()))
   }, [selectedCompanyName])
 
   const filteredCompaniesList = useMemo(() => {
-    return FEATURED_COMPANIES.filter(c => {
+    return dynamicCompanies.filter(c => {
       const matchQuery = c.name.toLowerCase().includes(searchQuery.toLowerCase())
       const matchSec = selectedSector === 'All sectors' || c.industry.includes(selectedSector) || selectedSector.includes(c.industry)
       const matchLoc = selectedLocation === 'All locations' || c.location.includes(selectedLocation)
       return matchQuery && matchSec && matchLoc
     })
-  }, [searchQuery, selectedSector, selectedLocation])
+  }, [searchQuery, selectedSector, selectedLocation, dynamicCompanies])
 
   function handleAuth() {
     if (passcode.trim().length === 0) {
@@ -228,10 +229,10 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
                 {selectedCompanyProfile.industry} &middot; {selectedCompanyProfile.location}
               </span>
               <h2 className="text-3xl font-bold text-[#0B1E33] tracking-tight mt-1">{selectedCompanyProfile.name}</h2>
-              <p className="text-xs text-[#6B5A44] mt-1">★ {selectedCompanyProfile.rating} &middot; Verified Partner Channel</p>
+              <p className="text-xs text-[#6B5A44] mt-1">★ {selectedCompanyProfile.rating} &middot; {selectedCompanyProfile.partner || 'Verified Employer'}</p>
             </div>
             <span className="rounded-full bg-[#0B1E33] text-white font-mono text-[10px] uppercase px-4 py-1.5 font-semibold">
-              Premier Partner
+              Ecosystem Partner
             </span>
           </div>
 
@@ -420,7 +421,7 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
             <span className="font-serif italic font-normal text-[#9A7B56]">most admired companies</span> hire.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-[#6B5A44]">
-            From Citi to Petronas to Nestlé, your next move starts at 900+ of the most admired companies, guided by AI.
+            From Citi to Petronas to Nestlé, your next move starts at {dynamicCompanies.length}+ of the most admired companies, guided by AI.
           </p>
 
           <div className="mx-auto mt-10 flex max-w-2xl items-center rounded-full border border-[#EBE7E0] bg-white p-1.5 shadow-sm focus-within:border-[#9A7B56]">
@@ -441,8 +442,8 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
 
           <div className="mx-auto mt-16 grid max-w-3xl grid-cols-3 gap-6 border-t border-[#EBE7E0]/60 pt-10">
             {[
-              { value: '900+', label: 'Leading companies' },
-              { value: '27,880+', label: 'Live roles' },
+              { value: `${dynamicCompanies.length}+`, label: 'Leading companies' },
+              { value: `${JOBS.length}+`, label: 'Live roles' },
               { value: '52', label: 'Sectors' },
             ].map((stat) => (
               <div key={stat.label}>
@@ -498,7 +499,7 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
             { num: '1', title: 'We set you up in minutes', desc: 'Answer a few easy questions and your profile builds itself. No long forms, no CV stress.' },
-            { num: '2', title: 'AI finds your matches', desc: 'Haven scans every role at 900+ companies and surfaces the ones that genuinely fit, with reasons why.' },
+            { num: '2', title: 'AI finds your matches', desc: `Haven scans every role at ${dynamicCompanies.length}+ companies and surfaces the ones that genuinely fit, with reasons why.` },
             { num: '3', title: 'Apply with one tap', desc: 'We pre-fill your application, track every status and nudge you at the right moments.' },
           ].map((step) => (
             <div key={step.num} className="relative p-6 rounded-xl border border-[#EBE7E0] bg-white shadow-3xs">
@@ -510,7 +511,7 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
         </div>
       </section>
 
-      {/* SECTION 4: ORIGINAL FEATURED COMPANIES PROFILE REDIRECT MATRIX */}
+      {/* SECTION 4: DYNAMIC FEATURED COMPANIES GRID */}
       <section className="bg-[#F9F7F3] border-y border-[#EBE7E0] py-20">
         <div className="mx-auto max-w-[1100px] px-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10">
@@ -521,12 +522,12 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
               </h2>
             </div>
             <button onClick={() => setSubView('COMPANIES')} className="mt-4 rounded-full bg-[#9A7B56] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#866A48] transition-colors cursor-pointer border-none shadow-sm">
-              Browse all 900+
+              Browse all {dynamicCompanies.length}
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {FEATURED_COMPANIES.map((comp) => (
+            {dynamicCompanies.slice(0, 8).map((comp) => (
               <div 
                 key={comp.name} 
                 onClick={() => { setSelectedCompanyName(comp.name); setSubView('PROFILE') }}
@@ -537,9 +538,9 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
                     {comp.icon}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-[#0B1E33]">{comp.name}</h4>
+                    <h4 className="text-sm font-bold text-[#0B1E33] truncate w-[100px]">{comp.name}</h4>
                     <p className="text-[11px] text-[#9A7B56]">{comp.industry}</p>
-                    <p className="text-[11px] text-[#9A7B56]">📍 {comp.location} </p>
+                    <p className="text-[11px] text-[#9A7B56] truncate w-[100px]">📍 {comp.location} </p>
                   </div>
                 </div>
                 <div className="border-t border-[#F1EDE5] pt-3 flex items-center justify-between text-[11px]">
@@ -671,7 +672,7 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
           <div className="lg:col-span-6 space-y-4">
             <div>
               <span className="text-[10px] font-mono uppercase tracking-widest text-[#9A7B56]">Matched To You</span>
-              <h3 className="text-2xl font-bold text-[#0B1E33] tracking-tight">Roles Haven thinks you'll fit.</h3>
+              <h3 className="text-2xl font-bold text-[#0B1E33] tracking-tight">Haven finds you the jobs match to your profiles.</h3>
             </div>
             
             <div className="space-y-3">
@@ -796,7 +797,7 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
         </div>
       </section>
 
-      {/* SECTION 6: LIFECYCLE TRACKER - Adjusted to a premium soft warm cream tint */}
+      {/* SECTION 6: LIFECYCLE TRACKER */}
       <section className="w-full bg-[#F9F7F2] px-6 py-24 border-t border-[#EBE7E0]/60">
         <div className="mx-auto max-w-[1200px]">
           <div className="text-center mb-16">
@@ -861,7 +862,7 @@ export function LandingSurface({ onExplore, onEmployerSignup, onSelectRole, stag
         </div>
       </section>
 
-      {/* SECTION 7: SPLIT ONBOARDING CARDS - Re-calibrated to flow perfectly into the unified layout grid background */}
+      {/* SECTION 7: SPLIT ONBOARDING CARDS */}
       <section className="w-full bg-[#F9F7F2] px-6 pb-24">
         <div className="mx-auto max-w-[1100px]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">

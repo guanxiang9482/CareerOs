@@ -10,7 +10,7 @@ import {
   type LoginResult,
   createEmptyPortfolio,
 } from './appState'
-import { JOBS, DEMO_CANDIDATE, type JobPosting } from './mockData'
+import { JOBS, DEMO_CANDIDATE, CANDIDATES, SEED_REGISTERED_USERS, type JobPosting } from './mockData'
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from './storage'
 
 interface FairPayInputs {
@@ -32,6 +32,8 @@ interface AppContextValue {
   addSkill: (skill: string) => void
   removeSkill: (skill: string) => void
   updateApplicationStage: (applicationId: string, newStage: PipelineStage) => void
+  
+  submitApplicationFeedback: (applicationId: string, reason: string, note: string) => void
 
   rentInput: number
   setRentInput: (val: number) => void
@@ -89,9 +91,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadFromStorage(STORAGE_KEYS.fairPayInputs, DEFAULT_FAIR_PAY)
   )
 
-  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>(() =>
-    loadFromStorage(STORAGE_KEYS.registeredUsers, [] as RegisteredUser[])
-  )
+  // FIX: Force override if the browser is clinging to the old 1-user cache.
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>(() => {
+    const saved = loadFromStorage(STORAGE_KEYS.registeredUsers, [] as RegisteredUser[])
+    if (saved.length < 10) {
+      return SEED_REGISTERED_USERS as RegisteredUser[]
+    }
+    return saved
+  })
 
   const [portfolio, setPortfolio] = useState<PortfolioRecord | null>(() => {
     const email = loadFromStorage<string | null>(STORAGE_KEYS.currentUserEmail, null)
@@ -122,7 +129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   function addSkill(skill: string) {
     setUserSkills(prev => prev.includes(skill) ? prev : [...prev, skill])
     setApplications(prev => prev.map(app => {
-      if (app.candidateId === DEMO_CANDIDATE.id) {
+      if (app.candidateName === authedName || app.candidateId === DEMO_CANDIDATE.id) {
         const remainingSkills = app.missingSkills.filter(s => s !== skill)
         return {
           ...app,
@@ -139,7 +146,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   function removeSkill(skill: string) {
     setUserSkills(prev => prev.filter(s => s !== skill))
     setApplications(prev => prev.map(app => {
-      if (app.candidateId === DEMO_CANDIDATE.id) {
+      if (app.candidateName === authedName || app.candidateId === DEMO_CANDIDATE.id) {
         return {
           ...app,
           missingSkills: [...app.missingSkills, skill],
@@ -162,11 +169,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ))
   }
 
+  function submitApplicationFeedback(applicationId: string, reason: string, note: string) {
+    setApplications(prev => prev.map(app =>
+      app.id === applicationId
+        ? { ...app, stage: 'Not Qualified', employerFeedbackReason: reason, employerNote: note }
+        : app
+    ))
+  }
+
+  function getActiveCandidateId(): string {
+    const candidateName = authedName || DEMO_CANDIDATE.name
+    const matchedRecord = CANDIDATES.find(c => c.name === candidateName)
+    return matchedRecord ? matchedRecord.id : DEMO_CANDIDATE.id
+  }
+
   function applyToJob(jobId: string) {
     const job = JOBS.find((j) => j.id === jobId)
     if (!job) return
 
-    if (applications.some((app) => app.jobId === jobId && app.candidateId === DEMO_CANDIDATE.id)) return
+    const activeCandidateId = getActiveCandidateId()
+
+    if (applications.some((app) => app.jobId === jobId && app.candidateId === activeCandidateId)) return
 
     const isBackend = job.role === 'Backend Engineer'
     const isMissingSystemDesign = isBackend && !userSkills.includes('System Design')
@@ -174,8 +197,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const newApplication: ApplicationRecord = {
       id: `APP-${Date.now()}`,
-      candidateId: DEMO_CANDIDATE.id,
-      candidateName: DEMO_CANDIDATE.name,
+      candidateId: activeCandidateId,
+      candidateName: authedName || DEMO_CANDIDATE.name,
       jobId: job.id,
       jobRole: job.role,
       company: job.company,
@@ -184,14 +207,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       stage: missing.length > 0 ? 'Not Qualified' : 'Queueing',
       matchScore: missing.length > 0 ? 78 : 94,
       missingSkills: missing,
-      portfolioScore: DEMO_CANDIDATE.portfolioScore
+      portfolioScore: DEMO_CANDIDATE.portfolioScore,
+      daysSinceApplied: 0 
     }
 
     setApplications((prev) => [newApplication, ...prev])
   }
 
   function hasApplied(jobId: string): boolean {
-    return applications.some((app) => app.jobId === jobId && app.candidateId === DEMO_CANDIDATE.id)
+    const activeCandidateId = getActiveCandidateId()
+    return applications.some((app) => app.jobId === jobId && app.candidateId === activeCandidateId)
   }
 
   function findRegisteredUser(email: string): RegisteredUser | null {
@@ -288,6 +313,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addSkill,
     removeSkill,
     updateApplicationStage,
+    submitApplicationFeedback,
     rentInput: fairPay.rentInput,
     setRentInput,
     livingInput: fairPay.livingInput,
