@@ -46,21 +46,59 @@ function havenView(view: AppView): ViewKey | null {
 
 function AppShell() {
   const [view, setView] = useState<AppView>('LANDING')
-  const { isLoggedIn, currentUserRole, logoutUser } = useAppContext()
+  const { isLoggedIn, currentUserRole, logoutUser, loginUser } = useAppContext()
 
   function navigateTo(target: AppView) {
     const requiredRole = viewToRole(target)
+    
     if (requiredRole) {
+      // If they aren't logged in, or are logged into the wrong role, auto-switch them
       if (!isLoggedIn || currentUserRole !== requiredRole) {
-        setView('LOG IN')
-        return
+        
+        // Map the required role to your updated seed data accounts
+        let demoEmail = ''
+        if (requiredRole === 'candidate') {
+          demoEmail = 'aisyah.yusof@email.com' //
+        } else if (requiredRole === 'employer') {
+          demoEmail = 'admin@cimb.com' //[cite: 9]
+        } else if (requiredRole === 'university') {
+          demoEmail = 'admin@um.edu.my' //[cite: 9]
+        }
+        
+        const demoPassword = 'password123' //[cite: 9]
+        
+        const loginResult = loginUser(demoEmail, demoPassword)
+        
+        if (loginResult.ok) {
+          setView(target)
+          return
+        } else {
+          // Fallback just in case
+          setView('LOG IN')
+          return
+        }
       }
     }
     setView(target)
   }
 
   function handleSelectRole(role: RoleKey) {
-    navigateTo(roleToView(role))
+    // 1. Map the clicked role to the pre-existing seed data credentials
+    const demoEmail = `demo.${role}@demo.com`
+    const demoPassword = 'demo123'
+    
+    // 2. Automatically log the judge in behind the scenes
+    const loginResult = loginUser(demoEmail, demoPassword)
+    
+    // 3. Navigate them directly to the role view
+    if (loginResult.ok) {
+      // Note: We use setView directly instead of navigateTo() because React's 
+      // 'isLoggedIn' state won't be updated until the next render cycle.
+      setView(roleToView(role))
+    } else {
+      // Fallback in case the seed data was somehow wiped
+      navigateTo(roleToView(role))
+    }
   }
 
   function handleSwitchRole() {
