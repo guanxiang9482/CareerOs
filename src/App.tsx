@@ -60,12 +60,12 @@ function AppShell() {
         if (requiredRole === 'candidate') {
           demoEmail = 'aisyah.yusof@email.com' //
         } else if (requiredRole === 'employer') {
-          demoEmail = 'admin@cimb.com' //[cite: 9]
+          demoEmail = 'admin@cimb.com'
         } else if (requiredRole === 'university') {
-          demoEmail = 'admin@um.edu.my' //[cite: 9]
+          demoEmail = 'admin@um.edu.my'
         }
         
-        const demoPassword = 'password123' //[cite: 9]
+        const demoPassword = 'password123'
         
         const loginResult = loginUser(demoEmail, demoPassword)
         
